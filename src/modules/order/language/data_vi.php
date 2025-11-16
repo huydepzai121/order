@@ -80,6 +80,7 @@ $lang_module['image'] = 'Hình ảnh';
 $lang_module['weight'] = 'Thứ tự';
 $lang_module['active'] = 'Hiển thị';
 $lang_module['inactive'] = 'Ẩn';
+$lang_module['menu_code_exists'] = 'Mã món đã tồn tại';
 
 // Staff management
 $lang_module['staff_list'] = 'Danh sách nhân viên';
@@ -91,6 +92,9 @@ $lang_module['staff_position'] = 'Vị trí';
 $lang_module['staff_select'] = 'Chọn nhân viên';
 
 // Staff work
+$lang_module['staff_work_add'] = 'Thêm công nhân viên';
+$lang_module['staff_work_edit'] = 'Sửa công nhân viên';
+$lang_module['staff_work_list'] = 'Danh sách công nhân viên';
 $lang_module['work_date'] = 'Ngày làm việc';
 $lang_module['shift'] = 'Ca làm';
 $lang_module['start_time'] = 'Giờ vào';
@@ -107,10 +111,15 @@ $lang_module['report_revenue'] = 'Báo cáo doanh thu';
 $lang_module['report_order'] = 'Báo cáo đơn hàng';
 $lang_module['report_menu'] = 'Báo cáo thực đơn';
 $lang_module['report_staff'] = 'Báo cáo nhân viên';
+$lang_module['report_type'] = 'Loại báo cáo';
 $lang_module['from_date'] = 'Từ ngày';
 $lang_module['to_date'] = 'Đến ngày';
 $lang_module['view_report'] = 'Xem báo cáo';
 $lang_module['export'] = 'Xuất báo cáo';
+$lang_module['revenue_summary'] = 'Tổng quan doanh thu';
+$lang_module['revenue_by_date'] = 'Doanh thu theo ngày';
+$lang_module['best_selling_items'] = 'Món bán chạy';
+$lang_module['staff_performance'] = 'Hiệu suất nhân viên';
 
 // Common
 $lang_module['add'] = 'Thêm mới';
@@ -130,10 +139,53 @@ $lang_module['no'] = 'Không';
 $lang_module['error_required'] = 'Vui lòng nhập đầy đủ thông tin bắt buộc';
 $lang_module['error_save'] = 'Có lỗi xảy ra khi lưu dữ liệu';
 $lang_module['error_delete'] = 'Có lỗi xảy ra khi xóa dữ liệu';
+$lang_module['error_security'] = 'Lỗi bảo mật. Vui lòng thử lại';
 $lang_module['success_save'] = 'Lưu dữ liệu thành công';
 $lang_module['success_delete'] = 'Xóa dữ liệu thành công';
-$lang_module['confirm_delete'] = 'Bạn có chắc chắn muốn xóa?';
+$lang_module['confirm_delete'] = 'Bạn có chắc chắn muốn xóa';
 $lang_module['no_data'] = 'Không có dữ liệu';
 
 // Permissions
 $lang_module['error_permission'] = 'Bạn không có quyền thực hiện thao tác này';
+
+// Config
+$lang_module['config_general'] = 'Cấu hình chung';
+$lang_module['order_prefix'] = 'Tiền tố mã đơn hàng';
+$lang_module['auto_order_code'] = 'Tự động tạo mã đơn hàng';
+$lang_module['work_shifts'] = 'Ca làm việc';
+$lang_module['work_shifts_hint'] = 'Nhập các ca làm việc, phân cách bằng dấu phẩy. Ví dụ: Sáng, Chiều, Tối';
+$lang_module['date_format'] = 'Định dạng ngày';
+$lang_module['currency_format'] = 'Định dạng tiền tệ';
+
+// Additional labels
+$lang_module['created_by'] = 'Người tạo';
+$lang_module['created_at'] = 'Ngày tạo';
+$lang_module['updated_at'] = 'Ngày cập nhật';
+$lang_module['items_per_page'] = 'Số bản ghi mỗi trang';
+$lang_module['page'] = 'Trang';
+$lang_module['of'] = 'của';
+$lang_module['showing'] = 'Hiển thị';
+$lang_module['to'] = 'đến';
+$lang_module['entries'] = 'bản ghi';
+$lang_module['loading'] = 'Đang tải...';
+$lang_module['processing'] = 'Đang xử lý...';
+
+// Validation
+$lang_module['error_invalid_email'] = 'Email không hợp lệ';
+$lang_module['error_invalid_phone'] = 'Số điện thoại không hợp lệ';
+$lang_module['error_invalid_date'] = 'Ngày không hợp lệ';
+$lang_module['error_invalid_number'] = 'Số không hợp lệ';
+$lang_module['error_min_value'] = 'Giá trị tối thiểu là %s';
+$lang_module['error_max_value'] = 'Giá trị tối đa là %s';
+$lang_module['error_duplicate'] = 'Dữ liệu đã tồn tại';
+$lang_module['error_order_prefix_required'] = 'Tiền tố mã đơn hàng không được để trống';
+$lang_module['error_work_shifts_required'] = 'Danh sách ca làm việc không được để trống';
+
+// Currency and formats
+$lang_module['currency_unit'] = 'đ';
+$lang_module['default_work_shifts'] = 'Sáng,Chiều,Tối';
+
+// Report types
+$lang_module['report_type_revenue'] = 'Doanh thu';
+$lang_module['report_type_menu'] = 'Thực đơn';
+$lang_module['report_type_staff'] = 'Nhân viên';

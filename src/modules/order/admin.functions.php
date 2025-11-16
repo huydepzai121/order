@@ -207,7 +207,7 @@ function nv_get_menu_list($status = -1)
  */
 function nv_get_work_shifts()
 {
-    global $db, $module_data;
+    global $db, $module_data, $nv_Lang;
 
     $sql = "SELECT config_value FROM " . NV_PREFIXLANG . "_" . $module_data . "_config WHERE config_name=:config_name";
     $stmt = $db->prepare($sql);
@@ -221,7 +221,9 @@ function nv_get_work_shifts()
         return array_map('trim', $shifts);
     }
 
-    return ['Sáng', 'Chiều', 'Tối'];
+    $default_shifts = $nv_Lang->getModule('default_work_shifts');
+    $shifts = explode(',', $default_shifts);
+    return array_map('trim', $shifts);
 }
 
 /**
@@ -229,7 +231,8 @@ function nv_get_work_shifts()
  */
 function nv_format_currency($amount)
 {
-    return number_format($amount, 0, ',', '.') . ' đ';
+    global $nv_Lang;
+    return number_format($amount, 0, ',', '.') . ' ' . $nv_Lang->getModule('currency_unit');
 }
 
 /**
