@@ -40,10 +40,10 @@ if ($nv_Request->isset_request('submit', 'post')) {
 
         // Validate
         if (empty($order_prefix)) {
-            $error[] = 'Tiền tố mã đơn hàng không được để trống';
+            $error[] = $nv_Lang->getModule('error_order_prefix_required');
         }
         if (empty($work_shifts)) {
-            $error[] = 'Danh sách ca làm việc không được để trống';
+            $error[] = $nv_Lang->getModule('error_work_shifts_required');
         }
 
         if (empty($error)) {
@@ -81,7 +81,7 @@ if ($nv_Request->isset_request('submit', 'post')) {
 $order_prefix = isset($config['order_prefix']) ? $config['order_prefix'] : 'ORD';
 $auto_order_code = isset($config['auto_order_code']) ? intval($config['auto_order_code']) : 1;
 $default_payment_method = isset($config['default_payment_method']) ? $config['default_payment_method'] : 'cash';
-$work_shifts = isset($config['work_shifts']) ? $config['work_shifts'] : 'Sáng,Chiều,Tối';
+$work_shifts = isset($config['work_shifts']) ? $config['work_shifts'] : $nv_Lang->getModule('default_work_shifts');
 
 // Prepare payment methods data
 $payment_methods = nv_payment_method_list();

@@ -121,9 +121,9 @@ if ($report_type == 'staff' || $report_type == 'all') {
 
 // Prepare data for report types
 $report_types = [
-    'revenue' => 'Doanh thu',
-    'menu' => 'Thực đơn',
-    'staff' => 'Nhân viên'
+    'revenue' => $nv_Lang->getModule('report_type_revenue'),
+    'menu' => $nv_Lang->getModule('report_type_menu'),
+    'staff' => $nv_Lang->getModule('report_type_staff')
 ];
 $report_types_data = [];
 foreach ($report_types as $key => $value) {

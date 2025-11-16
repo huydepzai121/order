@@ -49,10 +49,8 @@ modules/{module_name}/
 │   ├── del.php              # Delete action
 │   └── ...
 ├── language/                 # Language files
-│   ├── data_vi.php          # Admin language (Vietnamese)
-│   ├── data_en.php          # Admin language (English)
-│   ├── vi.php               # Frontend language (Vietnamese)
-│   └── en.php               # Frontend language (English)
+│   ├── vi.php               # Language file (Vietnamese) - both admin & frontend
+│   └── en.php               # Language file (English) - both admin & frontend
 └── themes/                   # Optional: module-specific themes
 
 themes/admin_future/modules/{module_name}/
@@ -394,8 +392,7 @@ include NV_ROOTDIR . '/includes/footer.php';
 
 | Aspect | NukeViet 4.x | NukeViet 5.x |
 |--------|--------------|--------------|
-| **Admin Language Path** | `language/vi/admin_{module}.php` | `language/data_vi.php` |
-| **Frontend Language Path** | `language/vi/{module}.php` | `language/vi.php` |
+| **Language File Path** | `language/vi/admin_{module}.php` (admin)<br>`language/vi/{module}.php` (frontend) | `language/vi.php` (both admin & frontend) |
 | **Guard Check** | `if (!defined('NV_ADMIN') or !defined('NV_MAINFILE'))` | `if (!defined('NV_ADMIN'))` |
 | **Language Variable** | `$lang_module` array | Returns via `$nv_Lang->getModule()` |
 | **Usage in PHP** | `$lang_module['key']` | `$nv_Lang->getModule('key')` |

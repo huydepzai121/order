@@ -74,7 +74,7 @@ if ($nv_Request->isset_request('submit', 'post')) {
         }
         $check_stmt->execute();
         if ($check_stmt->fetchColumn()) {
-            $error[] = $nv_Lang->getModule('menu_code') . ': Mã món đã tồn tại';
+            $error[] = $nv_Lang->getModule('menu_code') . ': ' . $nv_Lang->getModule('menu_code_exists');
         }
     }
 
