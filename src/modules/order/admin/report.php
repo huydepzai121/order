@@ -13,7 +13,7 @@ if (!defined('NV_IS_FILE_ADMIN')) {
     exit('Stop!!!');
 }
 
-$page_title = $lang_module['report'];
+$page_title = $nv_Lang->getModule('report');
 
 // Xử lý tìm kiếm và lọc
 $from_date = $nv_Request->get_title('from_date', 'get', date('Y-m-01'));
@@ -36,10 +36,13 @@ if ($report_type == 'revenue' || $report_type == 'all') {
             SUM(CASE WHEN status=2 AND payment_status=1 THEN total_amount ELSE 0 END) as paid_revenue,
             SUM(CASE WHEN status=2 AND payment_status=0 THEN total_amount ELSE 0 END) as unpaid_revenue
             FROM " . NV_PREFIXLANG . "_" . $module_data . "_orders
-            WHERE order_date >= " . $from_timestamp . "
-            AND order_date <= " . $to_timestamp;
-    $result = $db->query($sql);
-    $revenue_data = $result->fetch();
+            WHERE order_date >= :from_timestamp
+            AND order_date <= :to_timestamp";
+    $stmt = $db->prepare($sql);
+    $stmt->bindParam(':from_timestamp', $from_timestamp, PDO::PARAM_INT);
+    $stmt->bindParam(':to_timestamp', $to_timestamp, PDO::PARAM_INT);
+    $stmt->execute();
+    $revenue_data = $stmt->fetch();
 
     // Doanh thu theo ngày
     $revenue_by_date = [];
@@ -48,12 +51,15 @@ if ($report_type == 'revenue' || $report_type == 'all') {
             COUNT(*) as order_count,
             SUM(CASE WHEN status=2 THEN total_amount ELSE 0 END) as revenue
             FROM " . NV_PREFIXLANG . "_" . $module_data . "_orders
-            WHERE order_date >= " . $from_timestamp . "
-            AND order_date <= " . $to_timestamp . "
+            WHERE order_date >= :from_timestamp
+            AND order_date <= :to_timestamp
             GROUP BY DATE(FROM_UNIXTIME(order_date))
             ORDER BY date ASC";
-    $result = $db->query($sql);
-    while ($row = $result->fetch()) {
+    $stmt = $db->prepare($sql);
+    $stmt->bindParam(':from_timestamp', $from_timestamp, PDO::PARAM_INT);
+    $stmt->bindParam(':to_timestamp', $to_timestamp, PDO::PARAM_INT);
+    $stmt->execute();
+    while ($row = $stmt->fetch()) {
         $revenue_by_date[] = $row;
     }
 }
@@ -72,13 +78,16 @@ if ($report_type == 'menu' || $report_type == 'all') {
             FROM " . NV_PREFIXLANG . "_" . $module_data . "_menu m
             LEFT JOIN " . NV_PREFIXLANG . "_" . $module_data . "_order_items oi ON m.menu_id = oi.menu_id
             LEFT JOIN " . NV_PREFIXLANG . "_" . $module_data . "_orders o ON oi.order_id = o.order_id
-            WHERE o.order_date >= " . $from_timestamp . "
-            AND o.order_date <= " . $to_timestamp . "
+            WHERE o.order_date >= :from_timestamp
+            AND o.order_date <= :to_timestamp
             AND o.status = 2
             GROUP BY m.menu_id
             ORDER BY total_revenue DESC";
-    $result = $db->query($sql);
-    while ($row = $result->fetch()) {
+    $stmt = $db->prepare($sql);
+    $stmt->bindParam(':from_timestamp', $from_timestamp, PDO::PARAM_INT);
+    $stmt->bindParam(':to_timestamp', $to_timestamp, PDO::PARAM_INT);
+    $stmt->execute();
+    while ($row = $stmt->fetch()) {
         $menu_data[] = $row;
     }
 }
@@ -95,124 +104,121 @@ if ($report_type == 'staff' || $report_type == 'all') {
             LEFT JOIN " . NV_PREFIXLANG . "_" . $module_data . "_staff_work sw
                 ON o.staff_id = sw.staff_id
                 AND DATE(FROM_UNIXTIME(o.order_date)) = DATE(FROM_UNIXTIME(sw.work_date))
-            WHERE o.order_date >= " . $from_timestamp . "
-            AND o.order_date <= " . $to_timestamp . "
+            WHERE o.order_date >= :from_timestamp
+            AND o.order_date <= :to_timestamp
             GROUP BY o.staff_id
             ORDER BY total_revenue DESC";
-    $result = $db->query($sql);
-    while ($row = $result->fetch()) {
+    $stmt = $db->prepare($sql);
+    $stmt->bindParam(':from_timestamp', $from_timestamp, PDO::PARAM_INT);
+    $stmt->bindParam(':to_timestamp', $to_timestamp, PDO::PARAM_INT);
+    $stmt->execute();
+    while ($row = $stmt->fetch()) {
         $staff_info = nv_get_staff_info($row['staff_id']);
         $row['staff_name'] = !empty($staff_info) ? $staff_info['full_name'] : 'N/A';
         $staff_data[] = $row;
     }
 }
 
-// Include template
-$xtpl = new XTemplate('report.tpl', NV_ROOTDIR . '/themes/' . $global_config['module_theme'] . '/modules/' . $module_file);
-$xtpl->assign('LANG', $lang_module);
-$xtpl->assign('GLANG', $lang_global);
-$xtpl->assign('MODULE_NAME', $module_name);
-$xtpl->assign('OP', $op);
-$xtpl->assign('FROM_DATE', $from_date);
-$xtpl->assign('TO_DATE', $to_date);
-
-// Report type
+// Prepare data for report types
 $report_types = [
     'revenue' => 'Doanh thu',
     'menu' => 'Thực đơn',
     'staff' => 'Nhân viên'
 ];
+$report_types_data = [];
 foreach ($report_types as $key => $value) {
-    $xtpl->assign('REPORT_TYPE', [
+    $report_types_data[] = [
         'key' => $key,
         'value' => $value,
-        'selected' => $key == $report_type ? 'selected="selected"' : ''
-    ]);
-    $xtpl->parse('main.report_type');
+        'selected' => $key == $report_type
+    ];
 }
 
-// Báo cáo doanh thu
+// Prepare revenue data for template
+$revenue_summary = null;
+$revenue_by_date_data = [];
 if ($report_type == 'revenue' && !empty($revenue_data)) {
-    $xtpl->assign('REVENUE', [
+    $revenue_summary = [
         'total_orders' => number_format($revenue_data['total_orders']),
         'completed_orders' => number_format($revenue_data['completed_orders']),
         'cancelled_orders' => number_format($revenue_data['cancelled_orders']),
         'total_revenue' => nv_format_currency($revenue_data['total_revenue']),
         'paid_revenue' => nv_format_currency($revenue_data['paid_revenue']),
         'unpaid_revenue' => nv_format_currency($revenue_data['unpaid_revenue'])
-    ]);
-    $xtpl->parse('main.revenue_report.summary');
+    ];
 
     if (!empty($revenue_by_date)) {
         foreach ($revenue_by_date as $item) {
-            $xtpl->assign('REVENUE_DATE', [
+            $revenue_by_date_data[] = [
                 'date' => date('d/m/Y', strtotime($item['date'])),
                 'order_count' => number_format($item['order_count']),
                 'revenue' => nv_format_currency($item['revenue'])
-            ]);
-            $xtpl->parse('main.revenue_report.by_date.loop');
+            ];
         }
-        $xtpl->parse('main.revenue_report.by_date');
     }
-
-    $xtpl->parse('main.revenue_report');
 }
 
-// Báo cáo thực đơn
+// Prepare menu data for template
+$menu_data_formatted = [];
+$menu_total_quantity = 0;
+$menu_total_revenue = 0;
 if ($report_type == 'menu' && !empty($menu_data)) {
-    $total_quantity = 0;
-    $total_revenue = 0;
-
     foreach ($menu_data as $item) {
-        $total_quantity += $item['total_quantity'];
-        $total_revenue += $item['total_revenue'];
+        $menu_total_quantity += $item['total_quantity'];
+        $menu_total_revenue += $item['total_revenue'];
 
-        $xtpl->assign('MENU', [
+        $menu_data_formatted[] = [
             'menu_name' => $item['menu_name'],
             'category' => $item['category'],
             'price' => nv_format_currency($item['price']),
             'order_count' => number_format($item['order_count']),
             'total_quantity' => number_format($item['total_quantity']),
             'total_revenue' => nv_format_currency($item['total_revenue'])
-        ]);
-        $xtpl->parse('main.menu_report.loop');
+        ];
     }
-
-    $xtpl->assign('MENU_TOTAL_QUANTITY', number_format($total_quantity));
-    $xtpl->assign('MENU_TOTAL_REVENUE', nv_format_currency($total_revenue));
-
-    $xtpl->parse('main.menu_report');
 }
 
-// Báo cáo nhân viên
+// Prepare staff data for template
+$staff_data_formatted = [];
+$staff_total_orders = 0;
+$staff_total_revenue = 0;
+$staff_total_hours = 0;
 if ($report_type == 'staff' && !empty($staff_data)) {
-    $total_orders = 0;
-    $total_revenue = 0;
-    $total_hours = 0;
-
     foreach ($staff_data as $item) {
-        $total_orders += $item['order_count'];
-        $total_revenue += $item['total_revenue'];
-        $total_hours += $item['total_work_hours'];
+        $staff_total_orders += $item['order_count'];
+        $staff_total_revenue += $item['total_revenue'];
+        $staff_total_hours += $item['total_work_hours'];
 
-        $xtpl->assign('STAFF_ITEM', [
+        $staff_data_formatted[] = [
             'staff_name' => $item['staff_name'],
             'order_count' => number_format($item['order_count']),
             'total_revenue' => nv_format_currency($item['total_revenue']),
             'total_work_hours' => number_format($item['total_work_hours'], 2)
-        ]);
-        $xtpl->parse('main.staff_report.loop');
+        ];
     }
-
-    $xtpl->assign('STAFF_TOTAL_ORDERS', number_format($total_orders));
-    $xtpl->assign('STAFF_TOTAL_REVENUE', nv_format_currency($total_revenue));
-    $xtpl->assign('STAFF_TOTAL_HOURS', number_format($total_hours, 2));
-
-    $xtpl->parse('main.staff_report');
 }
 
-$xtpl->parse('main');
-$contents = $xtpl->text('main');
+// Initialize Smarty template
+$tpl = new \NukeViet\Template\NVSmarty();
+$tpl->setTemplateDir(get_module_tpl_dir('report.tpl'));
+$tpl->assign('LANG', $nv_Lang);
+$tpl->assign('MODULE_NAME', $module_name);
+$tpl->assign('OP', $op);
+$tpl->assign('FROM_DATE', $from_date);
+$tpl->assign('TO_DATE', $to_date);
+$tpl->assign('REPORT_TYPE', $report_type);
+$tpl->assign('REPORT_TYPES', $report_types_data);
+$tpl->assign('REVENUE_SUMMARY', $revenue_summary);
+$tpl->assign('REVENUE_BY_DATE', $revenue_by_date_data);
+$tpl->assign('MENU_DATA', $menu_data_formatted);
+$tpl->assign('MENU_TOTAL_QUANTITY', number_format($menu_total_quantity));
+$tpl->assign('MENU_TOTAL_REVENUE', nv_format_currency($menu_total_revenue));
+$tpl->assign('STAFF_DATA', $staff_data_formatted);
+$tpl->assign('STAFF_TOTAL_ORDERS', number_format($staff_total_orders));
+$tpl->assign('STAFF_TOTAL_REVENUE', nv_format_currency($staff_total_revenue));
+$tpl->assign('STAFF_TOTAL_HOURS', number_format($staff_total_hours, 2));
+
+$contents = $tpl->fetch('report.tpl');
 
 include NV_ROOTDIR . '/includes/header.php';
 echo nv_admin_theme($contents);

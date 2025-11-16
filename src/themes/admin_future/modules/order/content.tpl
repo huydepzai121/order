@@ -1,35 +1,35 @@
-<!-- BEGIN: main -->
+{* BEGIN: main *}
 <div class="card">
     <div class="card-header text-bg-primary">
-        <h5 class="mb-0"><i class="bi bi-receipt-cutoff"></i> {LANG.order_add}</h5>
+        <h5 class="mb-0"><i class="bi bi-receipt-cutoff"></i> {$LANG->getModule('order_add')}</h5>
     </div>
     <div class="card-body">
-        <!-- BEGIN: error -->
+        {if not empty($ERROR)}
         <div class="alert alert-danger">
-            <!-- BEGIN: loop -->
-            <div>{ERROR}</div>
-            <!-- END: loop -->
+            {$ERROR|@join:"<br />"}
         </div>
-        <!-- END: error -->
+        {/if}
 
-        <form action="{NV_BASE_ADMINURL}index.php?{NV_LANG_VARIABLE}={NV_LANG_DATA}&amp;{NV_NAME_VARIABLE}={MODULE_NAME}&amp;{NV_OP_VARIABLE}={OP}&amp;order_id={ORDER_ID}" method="post">
+        <form action="{$smarty.const.NV_BASE_ADMINURL}index.php?{$smarty.const.NV_LANG_VARIABLE}={$smarty.const.NV_LANG_DATA}&amp;{$smarty.const.NV_NAME_VARIABLE}={$MODULE_NAME}&amp;{$smarty.const.NV_OP_VARIABLE}={$OP}&amp;order_id={$ORDER_ID}" method="post">
+            <input type="hidden" name="checkss" value="{$NV_CHECK}" />
+
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label">{LANG.order_code}</label>
-                        <input type="text" name="order_code" value="{ORDER_CODE}" class="form-control" placeholder="{LANG.order_code}">
+                        <label class="form-label">{$LANG->getModule('order_code')}</label>
+                        <input type="text" name="order_code" value="{$ORDER_CODE}" class="form-control" placeholder="{$LANG->getModule('order_code')}">
                         <small class="form-text text-muted">Để trống để tự động tạo mã</small>
                     </div>
                 </div>
 
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label">{LANG.staff} <span class="text-danger">*</span></label>
+                        <label class="form-label">{$LANG->getModule('staff')} <span class="text-danger">*</span></label>
                         <select name="staff_id" class="form-select" required>
-                            <option value="0">{LANG.staff_select}</option>
-                            <!-- BEGIN: staff -->
-                            <option value="{STAFF.userid}" {STAFF.selected}>{STAFF.full_name}</option>
-                            <!-- END: staff -->
+                            <option value="0">{$LANG->getModule('staff_select')}</option>
+                            {foreach from=$STAFF_LIST item=staff}
+                            <option value="{$staff.userid}" {if $staff.selected}selected{/if}>{$staff.full_name}</option>
+                            {/foreach}
                         </select>
                     </div>
                 </div>
@@ -38,36 +38,36 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label">{LANG.customer_name} <span class="text-danger">*</span></label>
-                        <input type="text" name="customer_name" value="{CUSTOMER_NAME}" class="form-control" required>
+                        <label class="form-label">{$LANG->getModule('customer_name')} <span class="text-danger">*</span></label>
+                        <input type="text" name="customer_name" value="{$CUSTOMER_NAME}" class="form-control" required>
                     </div>
                 </div>
 
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label">{LANG.customer_phone} <span class="text-danger">*</span></label>
-                        <input type="text" name="customer_phone" value="{CUSTOMER_PHONE}" class="form-control" required>
+                        <label class="form-label">{$LANG->getModule('customer_phone')} <span class="text-danger">*</span></label>
+                        <input type="text" name="customer_phone" value="{$CUSTOMER_PHONE}" class="form-control" required>
                     </div>
                 </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">{LANG.customer_address}</label>
-                <input type="text" name="customer_address" value="{CUSTOMER_ADDRESS}" class="form-control">
+                <label class="form-label">{$LANG->getModule('customer_address')}</label>
+                <input type="text" name="customer_address" value="{$CUSTOMER_ADDRESS}" class="form-control">
             </div>
 
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label">{LANG.order_date} <span class="text-danger">*</span></label>
-                        <input type="datetime-local" name="order_date" value="{ORDER_DATE}" class="form-control" required>
+                        <label class="form-label">{$LANG->getModule('order_date')} <span class="text-danger">*</span></label>
+                        <input type="datetime-local" name="order_date" value="{$ORDER_DATE}" class="form-control" required>
                     </div>
                 </div>
 
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label">{LANG.delivery_date}</label>
-                        <input type="datetime-local" name="delivery_date" value="{DELIVERY_DATE}" class="form-control">
+                        <label class="form-label">{$LANG->getModule('delivery_date')}</label>
+                        <input type="datetime-local" name="delivery_date" value="{$DELIVERY_DATE}" class="form-control">
                     </div>
                 </div>
             </div>
@@ -75,88 +75,88 @@
             <div class="row">
                 <div class="col-md-4">
                     <div class="mb-3">
-                        <label class="form-label">{LANG.status}</label>
+                        <label class="form-label">{$LANG->getModule('status')}</label>
                         <select name="status" class="form-select">
-                            <!-- BEGIN: status -->
-                            <option value="{STATUS.key}" {STATUS.selected}>{STATUS.value}</option>
-                            <!-- END: status -->
+                            {foreach from=$STATUS_LIST item=status_item}
+                            <option value="{$status_item.key}" {if $status_item.selected}selected{/if}>{$status_item.value}</option>
+                            {/foreach}
                         </select>
                     </div>
                 </div>
 
                 <div class="col-md-4">
                     <div class="mb-3">
-                        <label class="form-label">{LANG.payment_status}</label>
+                        <label class="form-label">{$LANG->getModule('payment_status')}</label>
                         <select name="payment_status" class="form-select">
-                            <!-- BEGIN: payment_status -->
-                            <option value="{PAYMENT_STATUS_ITEM.key}" {PAYMENT_STATUS_ITEM.selected}>{PAYMENT_STATUS_ITEM.value}</option>
-                            <!-- END: payment_status -->
+                            {foreach from=$PAYMENT_STATUS_LIST item=payment_status_item}
+                            <option value="{$payment_status_item.key}" {if $payment_status_item.selected}selected{/if}>{$payment_status_item.value}</option>
+                            {/foreach}
                         </select>
                     </div>
                 </div>
 
                 <div class="col-md-4">
                     <div class="mb-3">
-                        <label class="form-label">{LANG.payment_method}</label>
+                        <label class="form-label">{$LANG->getModule('payment_method')}</label>
                         <select name="payment_method" class="form-select">
-                            <!-- BEGIN: payment_method -->
-                            <option value="{PAYMENT_METHOD_ITEM.key}" {PAYMENT_METHOD_ITEM.selected}>{PAYMENT_METHOD_ITEM.value}</option>
-                            <!-- END: payment_method -->
+                            {foreach from=$PAYMENT_METHOD_LIST item=payment_method_item}
+                            <option value="{$payment_method_item.key}" {if $payment_method_item.selected}selected{/if}>{$payment_method_item.value}</option>
+                            {/foreach}
                         </select>
                     </div>
                 </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">{LANG.note}</label>
-                <textarea name="note" rows="3" class="form-control">{NOTE}</textarea>
+                <label class="form-label">{$LANG->getModule('note')}</label>
+                <textarea name="note" rows="3" class="form-control">{$NOTE}</textarea>
             </div>
 
-            <!-- Chi tiết đơn hàng -->
+            {* Chi tiết đơn hàng *}
             <div class="card mb-3">
                 <div class="card-header">
-                    <h6 class="mb-0">{LANG.order_items}</h6>
+                    <h6 class="mb-0">{$LANG->getModule('order_items')}</h6>
                 </div>
                 <div class="card-body">
                     <div id="orderItems">
-                        <!-- BEGIN: items -->
-                        <!-- BEGIN: loop -->
+                        {if not empty($ORDER_ITEMS)}
+                        {foreach from=$ORDER_ITEMS item=item}
                         <div class="row mb-2 order-item">
                             <div class="col-md-4">
                                 <select name="items_menu_id[]" class="form-select menu-select" required>
-                                    <option value="">{LANG.menu_item}</option>
-                                    {MENU_OPTIONS}
+                                    <option value="">{$LANG->getModule('menu_item')}</option>
+                                    {$MENU_OPTIONS nofilter}
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <input type="number" name="items_quantity[]" value="{ITEM.quantity}" class="form-control item-quantity" placeholder="{LANG.quantity}" min="1" required>
+                                <input type="number" name="items_quantity[]" value="{$item.quantity}" class="form-control item-quantity" placeholder="{$LANG->getModule('quantity')}" min="1" required>
                             </div>
                             <div class="col-md-2">
-                                <input type="text" name="items_price[]" value="{ITEM.price}" class="form-control item-price" placeholder="{LANG.price}" required>
+                                <input type="text" name="items_price[]" value="{$item.price}" class="form-control item-price" placeholder="{$LANG->getModule('price')}" required>
                             </div>
                             <div class="col-md-3">
-                                <input type="text" name="items_note[]" value="{ITEM.note}" class="form-control" placeholder="{LANG.note}">
+                                <input type="text" name="items_note[]" value="{$item.note}" class="form-control" placeholder="{$LANG->getModule('note')}">
                             </div>
                             <div class="col-md-1">
                                 <button type="button" class="btn btn-danger btn-remove-item"><i class="bi bi-trash"></i></button>
                             </div>
                         </div>
-                        <!-- END: loop -->
-                        <!-- END: items -->
+                        {/foreach}
+                        {/if}
                     </div>
 
                     <button type="button" class="btn btn-success btn-sm" id="btnAddItem">
-                        <i class="bi bi-plus-circle"></i> {LANG.add_item}
+                        <i class="bi bi-plus-circle"></i> {$LANG->getModule('add_item')}
                     </button>
                 </div>
             </div>
 
             <div class="text-end">
-                <a href="{NV_BASE_ADMINURL}index.php?{NV_LANG_VARIABLE}={NV_LANG_DATA}&amp;{NV_NAME_VARIABLE}={MODULE_NAME}&amp;{NV_OP_VARIABLE}=main" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> {LANG.back}
+                <a href="{$smarty.const.NV_BASE_ADMINURL}index.php?{$smarty.const.NV_LANG_VARIABLE}={$smarty.const.NV_LANG_DATA}&amp;{$smarty.const.NV_NAME_VARIABLE}={$MODULE_NAME}&amp;{$smarty.const.NV_OP_VARIABLE}=main" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> {$LANG->getModule('back')}
                 </a>
                 <button type="submit" name="submit" class="btn btn-primary">
-                    <i class="bi bi-save"></i> {LANG.save}
+                    <i class="bi bi-save"></i> {$LANG->getModule('save')}
                 </button>
             </div>
         </form>
@@ -164,7 +164,7 @@
 </div>
 
 <script>
-var menuOptions = '{MENU_OPTIONS}';
+var menuOptions = '{$MENU_OPTIONS|escape:"javascript"}';
 
 $(document).ready(function() {
     // Thêm món mới
@@ -172,18 +172,18 @@ $(document).ready(function() {
         var html = '<div class="row mb-2 order-item">' +
             '<div class="col-md-4">' +
             '<select name="items_menu_id[]" class="form-select menu-select" required>' +
-            '<option value="">{LANG.menu_item}</option>' +
+            '<option value="">{$LANG->getModule("menu_item")|escape:"javascript"}</option>' +
             menuOptions +
             '</select>' +
             '</div>' +
             '<div class="col-md-2">' +
-            '<input type="number" name="items_quantity[]" value="1" class="form-control item-quantity" placeholder="{LANG.quantity}" min="1" required>' +
+            '<input type="number" name="items_quantity[]" value="1" class="form-control item-quantity" placeholder="{$LANG->getModule("quantity")|escape:"javascript"}" min="1" required>' +
             '</div>' +
             '<div class="col-md-2">' +
-            '<input type="text" name="items_price[]" class="form-control item-price" placeholder="{LANG.price}" required>' +
+            '<input type="text" name="items_price[]" class="form-control item-price" placeholder="{$LANG->getModule("price")|escape:"javascript"}" required>' +
             '</div>' +
             '<div class="col-md-3">' +
-            '<input type="text" name="items_note[]" class="form-control" placeholder="{LANG.note}">' +
+            '<input type="text" name="items_note[]" class="form-control" placeholder="{$LANG->getModule("note")|escape:"javascript"}">' +
             '</div>' +
             '<div class="col-md-1">' +
             '<button type="button" class="btn btn-danger btn-remove-item"><i class="bi bi-trash"></i></button>' +
@@ -206,4 +206,4 @@ $(document).ready(function() {
     });
 });
 </script>
-<!-- END: main -->
+{* END: main *}

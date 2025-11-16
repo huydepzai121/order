@@ -13,17 +13,20 @@ if (!defined('NV_IS_FILE_ADMIN')) {
     exit('Stop!!!');
 }
 
-$page_title = 'Thêm công nhân viên';
+$page_title = $nv_Lang->getModule('staff_work_add');
 $work_id = $nv_Request->get_int('work_id', 'get', 0);
 
 // Lấy thông tin công việc nếu đang sửa
 $work = [];
 if ($work_id > 0) {
-    $sql = "SELECT * FROM " . NV_PREFIXLANG . "_" . $module_data . "_staff_work WHERE work_id=" . $work_id;
-    $result = $db->query($sql);
-    if ($result->rowCount()) {
-        $work = $result->fetch();
-        $page_title = 'Sửa công nhân viên';
+    $sql = "SELECT * FROM " . NV_PREFIXLANG . "_" . $module_data . "_staff_work WHERE work_id=:work_id";
+    $stmt = $db->prepare($sql);
+    $stmt->bindParam(':work_id', $work_id, PDO::PARAM_INT);
+    $stmt->execute();
+
+    if ($stmt->rowCount()) {
+        $work = $stmt->fetch();
+        $page_title = $nv_Lang->getModule('staff_work_edit');
     } else {
         nv_redirect_location(NV_BASE_ADMINURL . 'index.php?' . NV_LANG_VARIABLE . '=' . NV_LANG_DATA . '&' . NV_NAME_VARIABLE . '=' . $module_name . '&' . NV_OP_VARIABLE . '=staff-work');
     }
@@ -33,6 +36,12 @@ $error = [];
 
 // Xử lý POST
 if ($nv_Request->isset_request('submit', 'post')) {
+    // Verify CSRF token
+    $checkss = $nv_Request->get_title('checkss', 'post', '');
+    if ($checkss != md5($client_info['session_id'] . $global_config['sitekey'])) {
+        $error[] = $nv_Lang->getModule('error_security');
+    }
+
     $staff_id = $nv_Request->get_int('staff_id', 'post', 0);
     $work_date = $nv_Request->get_title('work_date', 'post', '');
     $shift = $nv_Request->get_title('shift', 'post', '');
@@ -42,13 +51,13 @@ if ($nv_Request->isset_request('submit', 'post')) {
 
     // Validate
     if ($staff_id == 0) {
-        $error[] = $lang_module['staff'] . ': ' . $lang_module['error_required'];
+        $error[] = $nv_Lang->getModule('staff') . ': ' . $nv_Lang->getModule('error_required');
     }
     if (empty($work_date)) {
-        $error[] = $lang_module['work_date'] . ': ' . $lang_module['error_required'];
+        $error[] = $nv_Lang->getModule('work_date') . ': ' . $nv_Lang->getModule('error_required');
     }
     if (empty($shift)) {
-        $error[] = $lang_module['shift'] . ': ' . $lang_module['error_required'];
+        $error[] = $nv_Lang->getModule('shift') . ': ' . $nv_Lang->getModule('error_required');
     }
 
     // Tính số giờ làm việc
@@ -126,7 +135,7 @@ if ($nv_Request->isset_request('submit', 'post')) {
             nv_insert_logs(NV_LANG_DATA, $module_name, $work_id > 0 ? 'Edit staff work' : 'Add staff work', '', $admin_info['userid']);
             nv_redirect_location(NV_BASE_ADMINURL . 'index.php?' . NV_LANG_VARIABLE . '=' . NV_LANG_DATA . '&' . NV_NAME_VARIABLE . '=' . $module_name . '&' . NV_OP_VARIABLE . '=staff-work');
         } catch (PDOException $e) {
-            $error[] = $lang_module['error_save'];
+            $error[] = $nv_Lang->getModule('error_save');
         }
     }
 } else {
@@ -153,48 +162,42 @@ $staff_list = nv_get_staff_list();
 // Lấy danh sách ca làm việc
 $shifts = nv_get_work_shifts();
 
-// Include template
-$xtpl = new XTemplate('staff_work_content.tpl', NV_ROOTDIR . '/themes/' . $global_config['module_theme'] . '/modules/' . $module_file);
-$xtpl->assign('LANG', $lang_module);
-$xtpl->assign('GLANG', $lang_global);
-$xtpl->assign('MODULE_NAME', $module_name);
-$xtpl->assign('OP', $op);
-$xtpl->assign('WORK_ID', $work_id);
-$xtpl->assign('WORK_DATE', $work_date);
-$xtpl->assign('START_TIME', $start_time);
-$xtpl->assign('END_TIME', $end_time);
-$xtpl->assign('NOTE', $note);
-
-// Errors
-if (!empty($error)) {
-    foreach ($error as $e) {
-        $xtpl->assign('ERROR', $e);
-        $xtpl->parse('main.error.loop');
-    }
-    $xtpl->parse('main.error');
-}
-
-// Nhân viên
+// Prepare staff list data
+$staff_list_data = [];
 foreach ($staff_list as $staff) {
-    $xtpl->assign('STAFF', [
+    $staff_list_data[] = [
         'userid' => $staff['userid'],
         'full_name' => $staff['full_name'],
-        'selected' => $staff['userid'] == $staff_id ? 'selected="selected"' : ''
-    ]);
-    $xtpl->parse('main.staff');
+        'selected' => $staff['userid'] == $staff_id
+    ];
 }
 
-// Ca làm việc
+// Prepare shifts data
+$shifts_data = [];
 foreach ($shifts as $s) {
-    $xtpl->assign('SHIFT', [
+    $shifts_data[] = [
         'value' => $s,
-        'selected' => $s == $shift ? 'selected="selected"' : ''
-    ]);
-    $xtpl->parse('main.shift');
+        'selected' => $s == $shift
+    ];
 }
 
-$xtpl->parse('main');
-$contents = $xtpl->text('main');
+// Initialize Smarty template
+$tpl = new \NukeViet\Template\NVSmarty();
+$tpl->setTemplateDir(get_module_tpl_dir('staff_work_content.tpl'));
+$tpl->assign('LANG', $nv_Lang);
+$tpl->assign('MODULE_NAME', $module_name);
+$tpl->assign('OP', $op);
+$tpl->assign('WORK_ID', $work_id);
+$tpl->assign('WORK_DATE', $work_date);
+$tpl->assign('START_TIME', $start_time);
+$tpl->assign('END_TIME', $end_time);
+$tpl->assign('NOTE', $note);
+$tpl->assign('ERROR', $error);
+$tpl->assign('STAFF_LIST', $staff_list_data);
+$tpl->assign('SHIFTS', $shifts_data);
+$tpl->assign('NV_CHECK', md5($client_info['session_id'] . $global_config['sitekey']));
+
+$contents = $tpl->fetch('staff_work_content.tpl');
 
 include NV_ROOTDIR . '/includes/header.php';
 echo nv_admin_theme($contents);

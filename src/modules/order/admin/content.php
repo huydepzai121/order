@@ -13,23 +13,27 @@ if (!defined('NV_IS_FILE_ADMIN')) {
     exit('Stop!!!');
 }
 
-$page_title = $lang_module['order_add'];
+$page_title = $nv_Lang->getModule('order_add');
 $order_id = $nv_Request->get_int('order_id', 'get', 0);
 
 // Lấy thông tin đơn hàng nếu đang sửa
 $order = [];
 $order_items = [];
 if ($order_id > 0) {
-    $sql = "SELECT * FROM " . NV_PREFIXLANG . "_" . $module_data . "_orders WHERE order_id=" . $order_id;
-    $result = $db->query($sql);
-    if ($result->rowCount()) {
-        $order = $result->fetch();
-        $page_title = $lang_module['edit'] . ': ' . $order['order_code'];
+    $sql = "SELECT * FROM " . NV_PREFIXLANG . "_" . $module_data . "_orders WHERE order_id=:order_id";
+    $stmt = $db->prepare($sql);
+    $stmt->bindParam(':order_id', $order_id, PDO::PARAM_INT);
+    $stmt->execute();
+    if ($stmt->rowCount()) {
+        $order = $stmt->fetch();
+        $page_title = $nv_Lang->getModule('edit') . ': ' . $order['order_code'];
 
         // Lấy chi tiết đơn hàng
-        $sql = "SELECT * FROM " . NV_PREFIXLANG . "_" . $module_data . "_order_items WHERE order_id=" . $order_id;
-        $result = $db->query($sql);
-        while ($row = $result->fetch()) {
+        $sql = "SELECT * FROM " . NV_PREFIXLANG . "_" . $module_data . "_order_items WHERE order_id=:order_id";
+        $stmt = $db->prepare($sql);
+        $stmt->bindParam(':order_id', $order_id, PDO::PARAM_INT);
+        $stmt->execute();
+        while ($row = $stmt->fetch()) {
             $order_items[] = $row;
         }
     } else {
@@ -41,6 +45,12 @@ $error = [];
 
 // Xử lý POST
 if ($nv_Request->isset_request('submit', 'post')) {
+    // Verify CSRF token
+    $checkss = $nv_Request->get_title('checkss', 'post', '');
+    if ($checkss != md5($client_info['session_id'] . $global_config['sitekey'])) {
+        $error[] = $nv_Lang->getModule('error_security');
+    }
+
     $order_code = $nv_Request->get_title('order_code', 'post', '');
     $staff_id = $nv_Request->get_int('staff_id', 'post', 0);
     $customer_name = $nv_Request->get_title('customer_name', 'post', '');
@@ -61,13 +71,13 @@ if ($nv_Request->isset_request('submit', 'post')) {
 
     // Validate
     if (empty($customer_name)) {
-        $error[] = $lang_module['customer_name'] . ': ' . $lang_module['error_required'];
+        $error[] = $nv_Lang->getModule('customer_name') . ': ' . $nv_Lang->getModule('error_required');
     }
     if (empty($customer_phone)) {
-        $error[] = $lang_module['customer_phone'] . ': ' . $lang_module['error_required'];
+        $error[] = $nv_Lang->getModule('customer_phone') . ': ' . $nv_Lang->getModule('error_required');
     }
     if (empty($order_date)) {
-        $error[] = $lang_module['order_date'] . ': ' . $lang_module['error_required'];
+        $error[] = $nv_Lang->getModule('order_date') . ': ' . $nv_Lang->getModule('error_required');
     }
 
     // Tạo mã đơn hàng nếu chưa có
@@ -150,7 +160,10 @@ if ($nv_Request->isset_request('submit', 'post')) {
             }
 
             // Xóa chi tiết đơn hàng cũ
-            $db->query("DELETE FROM " . NV_PREFIXLANG . "_" . $module_data . "_order_items WHERE order_id=" . $order_id);
+            $del_sql = "DELETE FROM " . NV_PREFIXLANG . "_" . $module_data . "_order_items WHERE order_id=:order_id";
+            $del_stmt = $db->prepare($del_sql);
+            $del_stmt->bindParam(':order_id', $order_id, PDO::PARAM_INT);
+            $del_stmt->execute();
 
             // Thêm chi tiết đơn hàng mới
             foreach ($items_menu_id as $key => $menu_id) {
@@ -162,22 +175,28 @@ if ($nv_Request->isset_request('submit', 'post')) {
 
                     // Lấy tên món
                     $menu_name = '';
-                    $menu_sql = "SELECT menu_name FROM " . NV_PREFIXLANG . "_" . $module_data . "_menu WHERE menu_id=" . $menu_id;
-                    $menu_result = $db->query($menu_sql);
-                    if ($menu_result->rowCount()) {
-                        $menu_row = $menu_result->fetch();
+                    $menu_sql = "SELECT menu_name FROM " . NV_PREFIXLANG . "_" . $module_data . "_menu WHERE menu_id=:menu_id";
+                    $menu_stmt = $db->prepare($menu_sql);
+                    $menu_stmt->bindParam(':menu_id', $menu_id, PDO::PARAM_INT);
+                    $menu_stmt->execute();
+                    if ($menu_stmt->rowCount()) {
+                        $menu_row = $menu_stmt->fetch();
                         $menu_name = $menu_row['menu_name'];
                     }
 
                     $item_sql = "INSERT INTO " . NV_PREFIXLANG . "_" . $module_data . "_order_items (
                                 order_id, menu_id, menu_name, quantity, price, total, note
                             ) VALUES (
-                                " . $order_id . ", " . $menu_id . ", :menu_name, " . $quantity . ",
-                                " . $price . ", " . $item_total . ", :note
+                                :order_id, :menu_id, :menu_name, :quantity, :price, :item_total, :note
                             )";
 
                     $item_stmt = $db->prepare($item_sql);
+                    $item_stmt->bindParam(':order_id', $order_id, PDO::PARAM_INT);
+                    $item_stmt->bindParam(':menu_id', $menu_id, PDO::PARAM_INT);
                     $item_stmt->bindParam(':menu_name', $menu_name, PDO::PARAM_STR);
+                    $item_stmt->bindParam(':quantity', $quantity, PDO::PARAM_INT);
+                    $item_stmt->bindParam(':price', $price, PDO::PARAM_STR);
+                    $item_stmt->bindParam(':item_total', $item_total, PDO::PARAM_STR);
                     $item_stmt->bindParam(':note', $item_note, PDO::PARAM_STR);
                     $item_stmt->execute();
                 }
@@ -189,7 +208,8 @@ if ($nv_Request->isset_request('submit', 'post')) {
             nv_redirect_location(NV_BASE_ADMINURL . 'index.php?' . NV_LANG_VARIABLE . '=' . NV_LANG_DATA . '&' . NV_NAME_VARIABLE . '=' . $module_name . '&' . NV_OP_VARIABLE . '=main');
         } catch (PDOException $e) {
             $db->query('ROLLBACK');
-            $error[] = $lang_module['error_save'];
+            nv_insert_logs(NV_LANG_DATA, $module_name, 'ERROR', $e->getMessage(), $admin_info['userid']);
+            $error[] = $nv_Lang->getModule('error_save');
         }
     }
 } else {
@@ -231,68 +251,41 @@ $status_list = nv_order_status_list();
 $payment_status_list = nv_payment_status_list();
 $payment_method_list = nv_payment_method_list();
 
-// Include template
-$xtpl = new XTemplate('content.tpl', NV_ROOTDIR . '/themes/' . $global_config['module_theme'] . '/modules/' . $module_file);
-$xtpl->assign('LANG', $lang_module);
-$xtpl->assign('GLANG', $lang_global);
-$xtpl->assign('MODULE_NAME', $module_name);
-$xtpl->assign('OP', $op);
-$xtpl->assign('ORDER_ID', $order_id);
-$xtpl->assign('ORDER_CODE', $order_code);
-$xtpl->assign('CUSTOMER_NAME', $customer_name);
-$xtpl->assign('CUSTOMER_PHONE', $customer_phone);
-$xtpl->assign('CUSTOMER_ADDRESS', $customer_address);
-$xtpl->assign('ORDER_DATE', $order_date);
-$xtpl->assign('DELIVERY_DATE', $delivery_date);
-$xtpl->assign('NOTE', $note);
-
-// Errors
-if (!empty($error)) {
-    foreach ($error as $e) {
-        $xtpl->assign('ERROR', $e);
-        $xtpl->parse('main.error.loop');
-    }
-    $xtpl->parse('main.error');
-}
-
-// Nhân viên
+// Prepare data for Smarty template
+$staff_list_data = [];
 foreach ($staff_list as $staff) {
-    $xtpl->assign('STAFF', [
+    $staff_list_data[] = [
         'userid' => $staff['userid'],
         'full_name' => $staff['full_name'],
-        'selected' => $staff['userid'] == $staff_id ? 'selected="selected"' : ''
-    ]);
-    $xtpl->parse('main.staff');
+        'selected' => $staff['userid'] == $staff_id
+    ];
 }
 
-// Trạng thái đơn hàng
+$status_list_data = [];
 foreach ($status_list as $key => $value) {
-    $xtpl->assign('STATUS', [
+    $status_list_data[] = [
         'key' => $key,
         'value' => $value,
-        'selected' => $key == $status ? 'selected="selected"' : ''
-    ]);
-    $xtpl->parse('main.status');
+        'selected' => $key == $status
+    ];
 }
 
-// Trạng thái thanh toán
+$payment_status_list_data = [];
 foreach ($payment_status_list as $key => $value) {
-    $xtpl->assign('PAYMENT_STATUS_ITEM', [
+    $payment_status_list_data[] = [
         'key' => $key,
         'value' => $value,
-        'selected' => $key == $payment_status ? 'selected="selected"' : ''
-    ]);
-    $xtpl->parse('main.payment_status');
+        'selected' => $key == $payment_status
+    ];
 }
 
-// Phương thức thanh toán
+$payment_method_list_data = [];
 foreach ($payment_method_list as $key => $value) {
-    $xtpl->assign('PAYMENT_METHOD_ITEM', [
+    $payment_method_list_data[] = [
         'key' => $key,
         'value' => $value,
-        'selected' => $key == $payment_method ? 'selected="selected"' : ''
-    ]);
-    $xtpl->parse('main.payment_method');
+        'selected' => $key == $payment_method
+    ];
 }
 
 // Danh sách thực đơn cho select
@@ -300,26 +293,46 @@ $menu_options = '';
 foreach ($menu_list as $menu) {
     $menu_options .= '<option value="' . $menu['menu_id'] . '" data-price="' . $menu['price'] . '">' . $menu['menu_name'] . ' - ' . nv_format_currency($menu['price']) . '</option>';
 }
-$xtpl->assign('MENU_OPTIONS', $menu_options);
 
 // Chi tiết đơn hàng
+$order_items_data = [];
 if (!empty($order_items)) {
     foreach ($order_items as $item) {
-        $xtpl->assign('ITEM', [
+        $order_items_data[] = [
             'menu_id' => $item['menu_id'],
             'menu_name' => $item['menu_name'],
             'quantity' => $item['quantity'],
             'price' => number_format($item['price'], 0, ',', '.'),
             'total' => number_format($item['total'], 0, ',', '.'),
             'note' => $item['note']
-        ]);
-        $xtpl->parse('main.items.loop');
+        ];
     }
-    $xtpl->parse('main.items');
 }
 
-$xtpl->parse('main');
-$contents = $xtpl->text('main');
+// Initialize Smarty template
+$tpl = new \NukeViet\Template\NVSmarty();
+$tpl->setTemplateDir(get_module_tpl_dir('content.tpl'));
+$tpl->assign('LANG', $nv_Lang);
+$tpl->assign('MODULE_NAME', $module_name);
+$tpl->assign('OP', $op);
+$tpl->assign('ORDER_ID', $order_id);
+$tpl->assign('ORDER_CODE', $order_code);
+$tpl->assign('CUSTOMER_NAME', $customer_name);
+$tpl->assign('CUSTOMER_PHONE', $customer_phone);
+$tpl->assign('CUSTOMER_ADDRESS', $customer_address);
+$tpl->assign('ORDER_DATE', $order_date);
+$tpl->assign('DELIVERY_DATE', $delivery_date);
+$tpl->assign('NOTE', $note);
+$tpl->assign('ERROR', $error);
+$tpl->assign('STAFF_LIST', $staff_list_data);
+$tpl->assign('STATUS_LIST', $status_list_data);
+$tpl->assign('PAYMENT_STATUS_LIST', $payment_status_list_data);
+$tpl->assign('PAYMENT_METHOD_LIST', $payment_method_list_data);
+$tpl->assign('MENU_OPTIONS', $menu_options);
+$tpl->assign('ORDER_ITEMS', $order_items_data);
+$tpl->assign('NV_CHECK', md5($client_info['session_id'] . $global_config['sitekey']));
+
+$contents = $tpl->fetch('content.tpl');
 
 include NV_ROOTDIR . '/includes/header.php';
 echo nv_admin_theme($contents);

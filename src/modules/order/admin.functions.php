@@ -9,7 +9,7 @@
  * @see https://github.com/nukeviet The NukeViet CMS GitHub project
  */
 
-if (!defined('NV_ADMIN') or !defined('NV_MAINFILE') or !defined('NV_IS_MODADMIN')) {
+if (!defined('NV_ADMIN')) {
     exit('Stop!!!');
 }
 
@@ -35,13 +35,13 @@ $allow_func = [
  */
 function nv_order_status_list()
 {
-    global $lang_module;
+    global $nv_Lang;
 
     return [
-        0 => $lang_module['status_new'],
-        1 => $lang_module['status_processing'],
-        2 => $lang_module['status_completed'],
-        3 => $lang_module['status_cancelled']
+        0 => $nv_Lang->getModule('status_new'),
+        1 => $nv_Lang->getModule('status_processing'),
+        2 => $nv_Lang->getModule('status_completed'),
+        3 => $nv_Lang->getModule('status_cancelled')
     ];
 }
 
@@ -50,11 +50,11 @@ function nv_order_status_list()
  */
 function nv_payment_status_list()
 {
-    global $lang_module;
+    global $nv_Lang;
 
     return [
-        0 => $lang_module['payment_unpaid'],
-        1 => $lang_module['payment_paid']
+        0 => $nv_Lang->getModule('payment_unpaid'),
+        1 => $nv_Lang->getModule('payment_paid')
     ];
 }
 
@@ -63,12 +63,12 @@ function nv_payment_status_list()
  */
 function nv_payment_method_list()
 {
-    global $lang_module;
+    global $nv_Lang;
 
     return [
-        'cash' => $lang_module['payment_cash'],
-        'transfer' => $lang_module['payment_transfer'],
-        'card' => $lang_module['payment_card']
+        'cash' => $nv_Lang->getModule('payment_cash'),
+        'transfer' => $nv_Lang->getModule('payment_transfer'),
+        'card' => $nv_Lang->getModule('payment_card')
     ];
 }
 
@@ -77,14 +77,17 @@ function nv_payment_method_list()
  */
 function nv_generate_order_code()
 {
-    global $db, $db_config, $module_data, $lang;
+    global $db, $db_config, $module_data;
 
     // Lấy prefix từ config
     $prefix = 'ORD';
-    $sql = "SELECT config_value FROM " . NV_PREFIXLANG . "_" . $module_data . "_config WHERE config_name='order_prefix'";
-    $result = $db->query($sql);
-    if ($result->rowCount()) {
-        $row = $result->fetch();
+    $sql = "SELECT config_value FROM " . NV_PREFIXLANG . "_" . $module_data . "_config WHERE config_name=:config_name";
+    $stmt = $db->prepare($sql);
+    $config_name = 'order_prefix';
+    $stmt->bindParam(':config_name', $config_name, PDO::PARAM_STR);
+    $stmt->execute();
+    if ($stmt->rowCount()) {
+        $row = $stmt->fetch();
         $prefix = $row['config_value'];
     }
 
@@ -92,9 +95,14 @@ function nv_generate_order_code()
     $code = $prefix . date('Ymd') . sprintf('%04d', rand(1, 9999));
 
     // Kiểm tra trùng lặp
-    $check_sql = "SELECT COUNT(*) FROM " . NV_PREFIXLANG . "_" . $module_data . "_orders WHERE order_code='" . $code . "'";
-    while ($db->query($check_sql)->fetchColumn()) {
+    $check_sql = "SELECT COUNT(*) FROM " . NV_PREFIXLANG . "_" . $module_data . "_orders WHERE order_code=:order_code";
+    $check_stmt = $db->prepare($check_sql);
+    $check_stmt->bindParam(':order_code', $code, PDO::PARAM_STR);
+    $check_stmt->execute();
+    while ($check_stmt->fetchColumn()) {
         $code = $prefix . date('Ymd') . sprintf('%04d', rand(1, 9999));
+        $check_stmt->bindParam(':order_code', $code, PDO::PARAM_STR);
+        $check_stmt->execute();
     }
 
     return $code;
@@ -113,11 +121,13 @@ function nv_get_staff_info($userid)
 
     $sql = "SELECT userid, username, first_name, last_name, email, gender
             FROM " . NV_USERS_GLOBALTABLE . "
-            WHERE userid=" . intval($userid);
-    $result = $db->query($sql);
+            WHERE userid=:userid";
+    $stmt = $db->prepare($sql);
+    $stmt->bindParam(':userid', $userid, PDO::PARAM_INT);
+    $stmt->execute();
 
-    if ($result->rowCount()) {
-        $row = $result->fetch();
+    if ($stmt->rowCount()) {
+        $row = $stmt->fetch();
         $row['full_name'] = trim($row['first_name'] . ' ' . $row['last_name']);
         if (empty($row['full_name'])) {
             $row['full_name'] = $row['username'];
@@ -135,24 +145,24 @@ function nv_get_staff_list($active_only = true)
 {
     global $db;
 
-    $where = [];
-    if ($active_only) {
-        $where[] = "active=1";
-    }
-
     $sql = "SELECT userid, username, first_name, last_name, email
             FROM " . NV_USERS_GLOBALTABLE;
 
-    if (!empty($where)) {
-        $sql .= " WHERE " . implode(' AND ', $where);
+    if ($active_only) {
+        $sql .= " WHERE active=:active";
     }
 
     $sql .= " ORDER BY first_name ASC, last_name ASC";
 
-    $result = $db->query($sql);
-    $staff_list = [];
+    $stmt = $db->prepare($sql);
+    if ($active_only) {
+        $active = 1;
+        $stmt->bindParam(':active', $active, PDO::PARAM_INT);
+    }
+    $stmt->execute();
 
-    while ($row = $result->fetch()) {
+    $staff_list = [];
+    while ($row = $stmt->fetch()) {
         $row['full_name'] = trim($row['first_name'] . ' ' . $row['last_name']);
         if (empty($row['full_name'])) {
             $row['full_name'] = $row['username'];
@@ -170,23 +180,22 @@ function nv_get_menu_list($status = -1)
 {
     global $db, $module_data;
 
-    $where = [];
-    if ($status >= 0) {
-        $where[] = "status=" . intval($status);
-    }
-
     $sql = "SELECT * FROM " . NV_PREFIXLANG . "_" . $module_data . "_menu";
 
-    if (!empty($where)) {
-        $sql .= " WHERE " . implode(' AND ', $where);
+    if ($status >= 0) {
+        $sql .= " WHERE status=:status";
     }
 
     $sql .= " ORDER BY weight ASC, menu_id ASC";
 
-    $result = $db->query($sql);
-    $menu_list = [];
+    $stmt = $db->prepare($sql);
+    if ($status >= 0) {
+        $stmt->bindParam(':status', $status, PDO::PARAM_INT);
+    }
+    $stmt->execute();
 
-    while ($row = $result->fetch()) {
+    $menu_list = [];
+    while ($row = $stmt->fetch()) {
         $menu_list[$row['menu_id']] = $row;
     }
 
@@ -200,11 +209,14 @@ function nv_get_work_shifts()
 {
     global $db, $module_data;
 
-    $sql = "SELECT config_value FROM " . NV_PREFIXLANG . "_" . $module_data . "_config WHERE config_name='work_shifts'";
-    $result = $db->query($sql);
+    $sql = "SELECT config_value FROM " . NV_PREFIXLANG . "_" . $module_data . "_config WHERE config_name=:config_name";
+    $stmt = $db->prepare($sql);
+    $config_name = 'work_shifts';
+    $stmt->bindParam(':config_name', $config_name, PDO::PARAM_STR);
+    $stmt->execute();
 
-    if ($result->rowCount()) {
-        $row = $result->fetch();
+    if ($stmt->rowCount()) {
+        $row = $stmt->fetch();
         $shifts = explode(',', $row['config_value']);
         return array_map('trim', $shifts);
     }
@@ -229,11 +241,14 @@ function nv_calculate_order_total($order_id)
 
     $sql = "SELECT SUM(total) as total_amount
             FROM " . NV_PREFIXLANG . "_" . $module_data . "_order_items
-            WHERE order_id=" . intval($order_id);
+            WHERE order_id=:order_id";
 
-    $result = $db->query($sql);
-    if ($result->rowCount()) {
-        $row = $result->fetch();
+    $stmt = $db->prepare($sql);
+    $stmt->bindParam(':order_id', $order_id, PDO::PARAM_INT);
+    $stmt->execute();
+
+    if ($stmt->rowCount()) {
+        $row = $stmt->fetch();
         return floatval($row['total_amount']);
     }
 

@@ -13,7 +13,7 @@ if (!defined('NV_IS_FILE_ADMIN')) {
     exit('Stop!!!');
 }
 
-$page_title = $lang_module['order_manage'];
+$page_title = $nv_Lang->getModule('order_manage');
 
 // Xử lý tìm kiếm và lọc
 $search = $nv_Request->get_title('search', 'get', '');
@@ -103,86 +103,48 @@ if (!empty($params)) {
 
 $generate_page = nv_generate_page($base_url, $total_records, $per_page, $page);
 
-// Include template
-$xtpl = new XTemplate('main.tpl', NV_ROOTDIR . '/themes/' . $global_config['module_theme'] . '/modules/' . $module_file);
-$xtpl->assign('LANG', $lang_module);
-$xtpl->assign('GLANG', $lang_global);
-$xtpl->assign('MODULE_NAME', $module_name);
-$xtpl->assign('OP', $op);
-$xtpl->assign('SEARCH', $search);
-$xtpl->assign('FROM_DATE', $from_date);
-$xtpl->assign('TO_DATE', $to_date);
+// Initialize Smarty template
+$tpl = new \NukeViet\Template\NVSmarty();
+$tpl->setTemplateDir(get_module_tpl_dir('main.tpl'));
+$tpl->assign('LANG', $nv_Lang);
+$tpl->assign('MODULE_NAME', $module_name);
+$tpl->assign('OP', $op);
+$tpl->assign('SEARCH', $search);
+$tpl->assign('FROM_DATE', $from_date);
+$tpl->assign('TO_DATE', $to_date);
 
-// Danh sách trạng thái đơn hàng
-$xtpl->assign('STATUS_SELECTED', $status);
-foreach ($status_list as $key => $value) {
-    $xtpl->assign('STATUS', [
-        'key' => $key,
-        'value' => $value,
-        'selected' => $key == $status ? 'selected="selected"' : ''
-    ]);
-    $xtpl->parse('main.status');
+// Prepare data for orders list
+$orders_data = [];
+foreach ($orders as $order) {
+    $staff_info = nv_get_staff_info($order['staff_id']);
+
+    $orders_data[] = [
+        'order_id' => $order['order_id'],
+        'order_code' => $order['order_code'],
+        'customer_name' => $order['customer_name'],
+        'customer_phone' => $order['customer_phone'],
+        'order_date' => date('d/m/Y H:i', $order['order_date']),
+        'delivery_date' => $order['delivery_date'] ? date('d/m/Y H:i', $order['delivery_date']) : '',
+        'total_amount' => nv_format_currency($order['total_amount']),
+        'status' => $status_list[$order['status']],
+        'status_class' => $order['status'] == 2 ? 'success' : ($order['status'] == 3 ? 'danger' : ($order['status'] == 1 ? 'warning' : 'info')),
+        'payment_status' => $payment_status_list[$order['payment_status']],
+        'payment_status_class' => $order['payment_status'] == 1 ? 'success' : 'danger',
+        'staff_name' => !empty($staff_info) ? $staff_info['full_name'] : ''
+    ];
 }
 
-// Danh sách trạng thái thanh toán
-$xtpl->assign('PAYMENT_STATUS_SELECTED', $payment_status);
-foreach ($payment_status_list as $key => $value) {
-    $xtpl->assign('PAYMENT_STATUS_ITEM', [
-        'key' => $key,
-        'value' => $value,
-        'selected' => $key == $payment_status ? 'selected="selected"' : ''
-    ]);
-    $xtpl->parse('main.payment_status');
-}
+$tpl->assign('STATUS_LIST', $status_list);
+$tpl->assign('STATUS_SELECTED', $status);
+$tpl->assign('PAYMENT_STATUS_LIST', $payment_status_list);
+$tpl->assign('PAYMENT_STATUS_SELECTED', $payment_status);
+$tpl->assign('STAFF_LIST', $staff_list);
+$tpl->assign('STAFF_ID_SELECTED', $staff_id);
+$tpl->assign('ORDERS', $orders_data);
+$tpl->assign('GENERATE_PAGE', $generate_page);
+$tpl->assign('NV_CHECK', md5($client_info['session_id'] . $global_config['sitekey']));
 
-// Danh sách nhân viên
-$xtpl->assign('STAFF_ID_SELECTED', $staff_id);
-foreach ($staff_list as $staff) {
-    $xtpl->assign('STAFF', [
-        'userid' => $staff['userid'],
-        'full_name' => $staff['full_name'],
-        'selected' => $staff['userid'] == $staff_id ? 'selected="selected"' : ''
-    ]);
-    $xtpl->parse('main.staff');
-}
-
-// Danh sách đơn hàng
-if (!empty($orders)) {
-    $i = 0;
-    foreach ($orders as $order) {
-        $staff_info = nv_get_staff_info($order['staff_id']);
-
-        $xtpl->assign('ORDER', [
-            'order_id' => $order['order_id'],
-            'order_code' => $order['order_code'],
-            'customer_name' => $order['customer_name'],
-            'customer_phone' => $order['customer_phone'],
-            'order_date' => date('d/m/Y H:i', $order['order_date']),
-            'delivery_date' => $order['delivery_date'] ? date('d/m/Y H:i', $order['delivery_date']) : '',
-            'total_amount' => nv_format_currency($order['total_amount']),
-            'status' => $status_list[$order['status']],
-            'status_class' => $order['status'] == 2 ? 'success' : ($order['status'] == 3 ? 'danger' : ($order['status'] == 1 ? 'warning' : 'info')),
-            'payment_status' => $payment_status_list[$order['payment_status']],
-            'payment_status_class' => $order['payment_status'] == 1 ? 'success' : 'danger',
-            'staff_name' => !empty($staff_info) ? $staff_info['full_name'] : '',
-            'edit_url' => NV_BASE_ADMINURL . 'index.php?' . NV_LANG_VARIABLE . '=' . NV_LANG_DATA . '&amp;' . NV_NAME_VARIABLE . '=' . $module_name . '&amp;' . NV_OP_VARIABLE . '=content&amp;order_id=' . $order['order_id'],
-            'delete_url' => NV_BASE_ADMINURL . 'index.php?' . NV_LANG_VARIABLE . '=' . NV_LANG_DATA . '&amp;' . NV_NAME_VARIABLE . '=' . $module_name . '&amp;' . NV_OP_VARIABLE . '=del&amp;order_id=' . $order['order_id']
-        ]);
-        $xtpl->parse('main.orders.loop');
-        $i++;
-    }
-    $xtpl->parse('main.orders');
-} else {
-    $xtpl->parse('main.no_data');
-}
-
-if (!empty($generate_page)) {
-    $xtpl->assign('GENERATE_PAGE', $generate_page);
-    $xtpl->parse('main.generate_page');
-}
-
-$xtpl->parse('main');
-$contents = $xtpl->text('main');
+$contents = $tpl->fetch('main.tpl');
 
 include NV_ROOTDIR . '/includes/header.php';
 echo nv_admin_theme($contents);
