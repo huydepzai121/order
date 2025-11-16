@@ -1,141 +1,139 @@
-<!-- BEGIN: main -->
+{* BEGIN: main *}
 <div class="card">
     <div class="card-header text-bg-primary">
-        <h5 class="mb-0"><i class="bi bi-calendar-check"></i> {LANG.staff_work_manage}</h5>
+        <h5 class="mb-0"><i class="bi bi-calendar-check"></i> {$LANG->getModule('staff_work_manage')}</h5>
     </div>
     <div class="card-body">
-        <!-- Bộ lọc -->
-        <form action="{NV_BASE_ADMINURL}index.php" method="get" class="mb-4">
-            <input type="hidden" name="{NV_LANG_VARIABLE}" value="{NV_LANG_DATA}">
-            <input type="hidden" name="{NV_NAME_VARIABLE}" value="{MODULE_NAME}">
-            <input type="hidden" name="{NV_OP_VARIABLE}" value="{OP}">
+        {* Bộ lọc *}
+        <form action="{$smarty.const.NV_BASE_ADMINURL}index.php" method="get" class="mb-4">
+            <input type="hidden" name="{$smarty.const.NV_LANG_VARIABLE}" value="{$smarty.const.NV_LANG_DATA}">
+            <input type="hidden" name="{$smarty.const.NV_NAME_VARIABLE}" value="{$MODULE_NAME}">
+            <input type="hidden" name="{$smarty.const.NV_OP_VARIABLE}" value="{$OP}">
 
             <div class="row g-3">
                 <div class="col-md-3">
-                    <label class="form-label">{LANG.staff}</label>
+                    <label class="form-label">{$LANG->getModule('staff')}</label>
                     <select name="staff_id" class="form-select">
-                        <option value="0">{LANG.all}</option>
-                        <!-- BEGIN: staff -->
-                        <option value="{STAFF.userid}" {STAFF.selected}>{STAFF.full_name}</option>
-                        <!-- END: staff -->
+                        <option value="0">{$LANG->getModule('all')}</option>
+                        {foreach from=$STAFF_LIST item=staff}
+                        <option value="{$staff.userid}" {if $staff.selected}selected{/if}>{$staff.full_name}</option>
+                        {/foreach}
                     </select>
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label">{LANG.from_date}</label>
-                    <input type="date" name="from_date" value="{FROM_DATE}" class="form-control">
+                    <label class="form-label">{$LANG->getModule('from_date')}</label>
+                    <input type="date" name="from_date" value="{$FROM_DATE}" class="form-control">
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label">{LANG.to_date}</label>
-                    <input type="date" name="to_date" value="{TO_DATE}" class="form-control">
+                    <label class="form-label">{$LANG->getModule('to_date')}</label>
+                    <input type="date" name="to_date" value="{$TO_DATE}" class="form-control">
                 </div>
 
                 <div class="col-md-3 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> {LANG.filter}</button>
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> {$LANG->getModule('filter')}</button>
                 </div>
             </div>
         </form>
 
-        <!-- Nút thêm mới -->
+        {* Nút thêm mới *}
         <div class="mb-3">
-            <a href="{NV_BASE_ADMINURL}index.php?{NV_LANG_VARIABLE}={NV_LANG_DATA}&amp;{NV_NAME_VARIABLE}={MODULE_NAME}&amp;{NV_OP_VARIABLE}=staff-work-content" class="btn btn-success">
-                <i class="bi bi-plus-circle"></i> Thêm công nhân viên
+            <a href="{$smarty.const.NV_BASE_ADMINURL}index.php?{$smarty.const.NV_LANG_VARIABLE}={$smarty.const.NV_LANG_DATA}&amp;{$smarty.const.NV_NAME_VARIABLE}={$MODULE_NAME}&amp;{$smarty.const.NV_OP_VARIABLE}=staff-work-content" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> {$LANG->getModule('staff_work_add')}
             </a>
         </div>
 
-        <!-- BEGIN: work -->
-        <!-- BEGIN: summary -->
+        {if not empty($WORK_LIST)}
+        {* BEGIN: summary *}
         <div class="row mb-4">
             <div class="col-md-4">
                 <div class="card text-bg-info">
                     <div class="card-body">
-                        <h6 class="card-title">Tổng giờ làm</h6>
-                        <h3 class="mb-0">{TOTAL_HOURS}</h3>
+                        <h6 class="card-title">{$LANG->getModule('total_work_hours')}</h6>
+                        <h3 class="mb-0">{$TOTAL_HOURS}</h3>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card text-bg-success">
                     <div class="card-body">
-                        <h6 class="card-title">Tổng đơn hàng</h6>
-                        <h3 class="mb-0">{TOTAL_ORDERS}</h3>
+                        <h6 class="card-title">{$LANG->getModule('total_orders')}</h6>
+                        <h3 class="mb-0">{$TOTAL_ORDERS}</h3>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card text-bg-warning">
                     <div class="card-body">
-                        <h6 class="card-title">Tổng doanh thu</h6>
-                        <h3 class="mb-0">{TOTAL_REVENUE}</h3>
+                        <h6 class="card-title">{$LANG->getModule('total_revenue')}</h6>
+                        <h3 class="mb-0">{$TOTAL_REVENUE}</h3>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- END: summary -->
+        {* END: summary *}
 
         <div class="table-responsive">
             <table class="table table-striped table-hover">
                 <thead>
                     <tr>
-                        <th>{LANG.staff_name}</th>
-                        <th>{LANG.work_date}</th>
-                        <th>{LANG.shift}</th>
-                        <th>{LANG.start_time}</th>
-                        <th>{LANG.end_time}</th>
-                        <th>{LANG.work_hours}</th>
-                        <th>{LANG.order_count}</th>
-                        <th>{LANG.total_revenue}</th>
-                        <th class="text-center">{LANG.action}</th>
+                        <th>{$LANG->getModule('staff_name')}</th>
+                        <th>{$LANG->getModule('work_date')}</th>
+                        <th>{$LANG->getModule('shift')}</th>
+                        <th>{$LANG->getModule('start_time')}</th>
+                        <th>{$LANG->getModule('end_time')}</th>
+                        <th>{$LANG->getModule('work_hours')}</th>
+                        <th>{$LANG->getModule('order_count')}</th>
+                        <th>{$LANG->getModule('total_revenue')}</th>
+                        <th class="text-center">{$LANG->getModule('action')}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- BEGIN: loop -->
+                    {foreach from=$WORK_LIST item=work}
                     <tr>
-                        <td><strong>{WORK.staff_name}</strong></td>
-                        <td>{WORK.work_date}</td>
-                        <td><span class="badge bg-info">{WORK.shift}</span></td>
-                        <td>{WORK.start_time}</td>
-                        <td>{WORK.end_time}</td>
-                        <td><strong>{WORK.work_hours}</strong></td>
-                        <td>{WORK.order_count}</td>
-                        <td><strong>{WORK.total_revenue}</strong></td>
+                        <td><strong>{$work.staff_name}</strong></td>
+                        <td>{$work.work_date}</td>
+                        <td><span class="badge bg-info">{$work.shift}</span></td>
+                        <td>{$work.start_time}</td>
+                        <td>{$work.end_time}</td>
+                        <td><strong>{$work.work_hours}</strong></td>
+                        <td>{$work.order_count}</td>
+                        <td><strong>{$work.total_revenue}</strong></td>
                         <td class="text-center">
                             <div class="btn-group btn-group-sm">
-                                <a href="{WORK.edit_url}" class="btn btn-primary" title="{LANG.edit}">
+                                <a href="{$work.edit_url}" class="btn btn-primary" title="{$LANG->getModule('edit')}">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <button type="button" class="btn btn-danger" onclick="confirmDelete({WORK.work_id});" title="{LANG.delete}">
+                                <button type="button" class="btn btn-danger" onclick="confirmDelete({$work.work_id});" title="{$LANG->getModule('delete')}">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
                         </td>
                     </tr>
-                    <!-- END: loop -->
+                    {/foreach}
                 </tbody>
             </table>
         </div>
-        <!-- END: work -->
-
-        <!-- BEGIN: no_data -->
+        {else}
         <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i> {LANG.no_data}
+            <i class="bi bi-info-circle"></i> {$LANG->getModule('no_data')}
         </div>
-        <!-- END: no_data -->
+        {/if}
 
-        <!-- BEGIN: generate_page -->
+        {if not empty($GENERATE_PAGE)}
         <div class="mt-3">
-            {GENERATE_PAGE}
+            {$GENERATE_PAGE}
         </div>
-        <!-- END: generate_page -->
+        {/if}
     </div>
 </div>
 
 <script>
 function confirmDelete(workId) {
-    if (confirm('{LANG.confirm_delete}?')) {
+    if (confirm('{$LANG->getModule("confirm_delete")}?')) {
         $.ajax({
-            url: '{NV_BASE_ADMINURL}index.php?{NV_LANG_VARIABLE}={NV_LANG_DATA}&{NV_NAME_VARIABLE}={MODULE_NAME}&{NV_OP_VARIABLE}=staff-work-del',
+            url: '{$smarty.const.NV_BASE_ADMINURL}index.php?{$smarty.const.NV_LANG_VARIABLE}={$smarty.const.NV_LANG_DATA}&{$smarty.const.NV_NAME_VARIABLE}={$MODULE_NAME}&{$smarty.const.NV_OP_VARIABLE}=staff-work-del',
             type: 'POST',
             data: { work_id: workId },
             success: function(response) {
@@ -150,4 +148,4 @@ function confirmDelete(workId) {
     }
 }
 </script>
-<!-- END: main -->
+{* END: main *}

@@ -13,17 +13,29 @@ if (!defined('NV_IS_FILE_ADMIN')) {
     exit('Stop!!!');
 }
 
-$page_title = $lang_module['menu_manage'];
+$page_title = $nv_Lang->getModule('menu_manage');
 
 // Xử lý AJAX cập nhật trạng thái
 if ($nv_Request->isset_request('ajax_action', 'post')) {
+    // Verify CSRF token
+    $checkss = $nv_Request->get_title('checkss', 'post', '');
+    if ($checkss != md5($client_info['session_id'] . $global_config['sitekey'])) {
+        nv_jsonOutput([
+            'status' => 'error',
+            'message' => $nv_Lang->getModule('error_security')
+        ]);
+    }
+
     $menu_id = $nv_Request->get_int('menu_id', 'post', 0);
     $field = $nv_Request->get_title('field', 'post', '');
     $value = $nv_Request->get_int('value', 'post', 0);
 
     if ($menu_id > 0 && in_array($field, ['status'])) {
-        $sql = "UPDATE " . NV_PREFIXLANG . "_" . $module_data . "_menu SET " . $field . "=" . $value . " WHERE menu_id=" . $menu_id;
-        $db->query($sql);
+        $sql = "UPDATE " . NV_PREFIXLANG . "_" . $module_data . "_menu SET " . $field . "=:value WHERE menu_id=:menu_id";
+        $stmt = $db->prepare($sql);
+        $stmt->bindParam(':value', $value, PDO::PARAM_INT);
+        $stmt->bindParam(':menu_id', $menu_id, PDO::PARAM_INT);
+        $stmt->execute();
 
         nv_jsonOutput([
             'status' => 'OK'
@@ -63,13 +75,17 @@ $sql = "SELECT COUNT(*) FROM " . NV_PREFIXLANG . "_" . $module_data . "_menu" . 
 $total_records = $db->query($sql)->fetchColumn();
 
 // Lấy danh sách thực đơn
+$offset = ($page - 1) * $per_page;
 $sql = "SELECT * FROM " . NV_PREFIXLANG . "_" . $module_data . "_menu" . $db_where . "
         ORDER BY weight ASC, menu_id DESC
-        LIMIT " . (($page - 1) * $per_page) . ", " . $per_page;
-$result = $db->query($sql);
+        LIMIT :offset, :per_page";
+$stmt = $db->prepare($sql);
+$stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+$stmt->bindParam(':per_page', $per_page, PDO::PARAM_INT);
+$stmt->execute();
 
 $menu_items = [];
-while ($row = $result->fetch()) {
+while ($row = $stmt->fetch()) {
     $menu_items[] = $row;
 }
 
@@ -99,69 +115,44 @@ if (!empty($params)) {
 
 $generate_page = nv_generate_page($base_url, $total_records, $per_page, $page);
 
-// Include template
-$xtpl = new XTemplate('menu.tpl', NV_ROOTDIR . '/themes/' . $global_config['module_theme'] . '/modules/' . $module_file);
-$xtpl->assign('LANG', $lang_module);
-$xtpl->assign('GLANG', $lang_global);
-$xtpl->assign('MODULE_NAME', $module_name);
-$xtpl->assign('OP', $op);
-$xtpl->assign('SEARCH', $search);
-
-// Danh sách danh mục
-$xtpl->assign('CATEGORY_SELECTED', $category);
-foreach ($categories as $cat) {
-    $xtpl->assign('CATEGORY', [
-        'value' => $cat,
-        'selected' => $cat == $category ? 'selected="selected"' : ''
-    ]);
-    $xtpl->parse('main.category');
-}
-
 // Danh sách trạng thái
-$xtpl->assign('STATUS_SELECTED', $status);
 $status_options = [
-    1 => $lang_module['active'],
-    0 => $lang_module['inactive']
+    1 => $nv_Lang->getModule('active'),
+    0 => $nv_Lang->getModule('inactive')
 ];
-foreach ($status_options as $key => $value) {
-    $xtpl->assign('STATUS', [
-        'key' => $key,
-        'value' => $value,
-        'selected' => $key == $status ? 'selected="selected"' : ''
-    ]);
-    $xtpl->parse('main.status_filter');
+
+// Prepare data for menu items
+$menu_items_data = [];
+foreach ($menu_items as $item) {
+    $menu_items_data[] = [
+        'menu_id' => $item['menu_id'],
+        'menu_code' => $item['menu_code'],
+        'menu_name' => $item['menu_name'],
+        'category' => $item['category'],
+        'price' => nv_format_currency($item['price']),
+        'status' => $item['status'],
+        'status_text' => $item['status'] ? $nv_Lang->getModule('active') : $nv_Lang->getModule('inactive'),
+        'status_class' => $item['status'] ? 'success' : 'secondary',
+        'weight' => $item['weight']
+    ];
 }
 
-// Danh sách thực đơn
-if (!empty($menu_items)) {
-    foreach ($menu_items as $item) {
-        $xtpl->assign('ITEM', [
-            'menu_id' => $item['menu_id'],
-            'menu_code' => $item['menu_code'],
-            'menu_name' => $item['menu_name'],
-            'category' => $item['category'],
-            'price' => nv_format_currency($item['price']),
-            'status' => $item['status'],
-            'status_text' => $item['status'] ? $lang_module['active'] : $lang_module['inactive'],
-            'status_class' => $item['status'] ? 'success' : 'secondary',
-            'weight' => $item['weight'],
-            'edit_url' => NV_BASE_ADMINURL . 'index.php?' . NV_LANG_VARIABLE . '=' . NV_LANG_DATA . '&amp;' . NV_NAME_VARIABLE . '=' . $module_name . '&amp;' . NV_OP_VARIABLE . '=menu-content&amp;menu_id=' . $item['menu_id'],
-            'delete_url' => NV_BASE_ADMINURL . 'index.php?' . NV_LANG_VARIABLE . '=' . NV_LANG_DATA . '&amp;' . NV_NAME_VARIABLE . '=' . $module_name . '&amp;' . NV_OP_VARIABLE . '=menu-del&amp;menu_id=' . $item['menu_id']
-        ]);
-        $xtpl->parse('main.items.loop');
-    }
-    $xtpl->parse('main.items');
-} else {
-    $xtpl->parse('main.no_data');
-}
+// Initialize Smarty template
+$tpl = new \NukeViet\Template\NVSmarty();
+$tpl->setTemplateDir(get_module_tpl_dir('menu.tpl'));
+$tpl->assign('LANG', $nv_Lang);
+$tpl->assign('MODULE_NAME', $module_name);
+$tpl->assign('OP', $op);
+$tpl->assign('SEARCH', $search);
+$tpl->assign('CATEGORIES', $categories);
+$tpl->assign('CATEGORY_SELECTED', $category);
+$tpl->assign('STATUS_OPTIONS', $status_options);
+$tpl->assign('STATUS_SELECTED', $status);
+$tpl->assign('MENU_ITEMS', $menu_items_data);
+$tpl->assign('GENERATE_PAGE', $generate_page);
+$tpl->assign('NV_CHECK', md5($client_info['session_id'] . $global_config['sitekey']));
 
-if (!empty($generate_page)) {
-    $xtpl->assign('GENERATE_PAGE', $generate_page);
-    $xtpl->parse('main.generate_page');
-}
-
-$xtpl->parse('main');
-$contents = $xtpl->text('main');
+$contents = $tpl->fetch('menu.tpl');
 
 include NV_ROOTDIR . '/includes/header.php';
 echo nv_admin_theme($contents);

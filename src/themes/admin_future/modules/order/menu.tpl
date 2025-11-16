@@ -1,112 +1,113 @@
-<!-- BEGIN: main -->
+{* BEGIN: main *}
 <div class="card">
     <div class="card-header text-bg-primary">
-        <h5 class="mb-0"><i class="bi bi-menu-button-wide"></i> {LANG.menu_list}</h5>
+        <h5 class="mb-0"><i class="bi bi-menu-button-wide"></i> {$LANG->getModule('menu_list')}</h5>
     </div>
     <div class="card-body">
-        <!-- Bộ lọc -->
-        <form action="{NV_BASE_ADMINURL}index.php" method="get" class="mb-4">
-            <input type="hidden" name="{NV_LANG_VARIABLE}" value="{NV_LANG_DATA}">
-            <input type="hidden" name="{NV_NAME_VARIABLE}" value="{MODULE_NAME}">
-            <input type="hidden" name="{NV_OP_VARIABLE}" value="{OP}">
+        {* Bộ lọc *}
+        <form action="{$smarty.const.NV_BASE_ADMINURL}index.php" method="get" class="mb-4">
+            <input type="hidden" name="{$smarty.const.NV_LANG_VARIABLE}" value="{$smarty.const.NV_LANG_DATA}">
+            <input type="hidden" name="{$smarty.const.NV_NAME_VARIABLE}" value="{$MODULE_NAME}">
+            <input type="hidden" name="{$smarty.const.NV_OP_VARIABLE}" value="{$OP}">
 
             <div class="row g-3">
                 <div class="col-md-4">
-                    <input type="text" name="search" value="{SEARCH}" class="form-control" placeholder="{LANG.search}...">
+                    <input type="text" name="search" value="{$SEARCH}" class="form-control" placeholder="{$LANG->getModule('search')}...">
                 </div>
 
                 <div class="col-md-3">
                     <select name="category" class="form-select">
-                        <option value="">{LANG.all}</option>
-                        <!-- BEGIN: category -->
-                        <option value="{CATEGORY.value}" {CATEGORY.selected}>{CATEGORY.value}</option>
-                        <!-- END: category -->
+                        <option value="">{$LANG->getModule('all')}</option>
+                        {foreach from=$CATEGORIES item=cat}
+                        <option value="{$cat}" {if $cat eq $CATEGORY_SELECTED}selected{/if}>{$cat}</option>
+                        {/foreach}
                     </select>
                 </div>
 
                 <div class="col-md-3">
                     <select name="status" class="form-select">
-                        <option value="-1">{LANG.all}</option>
-                        <!-- BEGIN: status_filter -->
-                        <option value="{STATUS.key}" {STATUS.selected}>{STATUS.value}</option>
-                        <!-- END: status_filter -->
+                        <option value="-1">{$LANG->getModule('all')}</option>
+                        {foreach from=$STATUS_OPTIONS key=key item=value}
+                        <option value="{$key}" {if $key eq $STATUS_SELECTED}selected{/if}>{$value}</option>
+                        {/foreach}
                     </select>
                 </div>
 
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> {LANG.filter}</button>
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> {$LANG->getModule('filter')}</button>
                 </div>
             </div>
         </form>
 
-        <!-- Nút thêm mới -->
+        {* Nút thêm mới *}
         <div class="mb-3">
-            <a href="{NV_BASE_ADMINURL}index.php?{NV_LANG_VARIABLE}={NV_LANG_DATA}&amp;{NV_NAME_VARIABLE}={MODULE_NAME}&amp;{NV_OP_VARIABLE}=menu-content" class="btn btn-success">
-                <i class="bi bi-plus-circle"></i> {LANG.menu_add}
+            <a href="{$smarty.const.NV_BASE_ADMINURL}index.php?{$smarty.const.NV_LANG_VARIABLE}={$smarty.const.NV_LANG_DATA}&amp;{$smarty.const.NV_NAME_VARIABLE}={$MODULE_NAME}&amp;{$smarty.const.NV_OP_VARIABLE}=menu-content" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> {$LANG->getModule('menu_add')}
             </a>
         </div>
 
-        <!-- BEGIN: items -->
+        {if not empty($MENU_ITEMS)}
         <div class="table-responsive">
             <table class="table table-striped table-hover">
                 <thead>
                     <tr>
-                        <th>{LANG.menu_code}</th>
-                        <th>{LANG.menu_name}</th>
-                        <th>{LANG.category}</th>
-                        <th>{LANG.price}</th>
-                        <th>{LANG.status}</th>
-                        <th>{LANG.weight}</th>
-                        <th class="text-center">{LANG.action}</th>
+                        <th>{$LANG->getModule('menu_code')}</th>
+                        <th>{$LANG->getModule('menu_name')}</th>
+                        <th>{$LANG->getModule('category')}</th>
+                        <th>{$LANG->getModule('price')}</th>
+                        <th>{$LANG->getModule('status')}</th>
+                        <th>{$LANG->getModule('weight')}</th>
+                        <th class="text-center">{$LANG->getModule('action')}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- BEGIN: loop -->
+                    {foreach from=$MENU_ITEMS item=item}
                     <tr>
-                        <td><code>{ITEM.menu_code}</code></td>
-                        <td><strong>{ITEM.menu_name}</strong></td>
-                        <td><span class="badge bg-info">{ITEM.category}</span></td>
-                        <td><strong>{ITEM.price}</strong></td>
-                        <td><span class="badge bg-{ITEM.status_class}">{ITEM.status_text}</span></td>
-                        <td>{ITEM.weight}</td>
+                        <td><code>{$item.menu_code}</code></td>
+                        <td><strong>{$item.menu_name}</strong></td>
+                        <td><span class="badge bg-info">{$item.category}</span></td>
+                        <td><strong>{$item.price}</strong></td>
+                        <td><span class="badge bg-{$item.status_class}">{$item.status_text}</span></td>
+                        <td>{$item.weight}</td>
                         <td class="text-center">
                             <div class="btn-group btn-group-sm">
-                                <a href="{ITEM.edit_url}" class="btn btn-primary" title="{LANG.edit}">
+                                <a href="{$smarty.const.NV_BASE_ADMINURL}index.php?{$smarty.const.NV_LANG_VARIABLE}={$smarty.const.NV_LANG_DATA}&amp;{$smarty.const.NV_NAME_VARIABLE}={$MODULE_NAME}&amp;{$smarty.const.NV_OP_VARIABLE}=menu-content&amp;menu_id={$item.menu_id}" class="btn btn-primary" title="{$LANG->getModule('edit')}">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <button type="button" class="btn btn-danger" onclick="confirmDelete({ITEM.menu_id}, '{ITEM.menu_name}');" title="{LANG.delete}">
+                                <button type="button" class="btn btn-danger" onclick="confirmDelete({$item.menu_id}, '{$item.menu_name|escape:'javascript'}');" title="{$LANG->getModule('delete')}">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
                         </td>
                     </tr>
-                    <!-- END: loop -->
+                    {/foreach}
                 </tbody>
             </table>
         </div>
-        <!-- END: items -->
-
-        <!-- BEGIN: no_data -->
+        {else}
         <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i> {LANG.no_data}
+            <i class="bi bi-info-circle"></i> {$LANG->getModule('no_data')}
         </div>
-        <!-- END: no_data -->
+        {/if}
 
-        <!-- BEGIN: generate_page -->
+        {if not empty($GENERATE_PAGE)}
         <div class="mt-3">
-            {GENERATE_PAGE}
+            {$GENERATE_PAGE}
         </div>
-        <!-- END: generate_page -->
+        {/if}
     </div>
 </div>
 
 <script>
 function confirmDelete(menuId, menuName) {
-    if (confirm('{LANG.confirm_delete} ' + menuName + '?')) {
+    if (confirm('{$LANG->getModule("confirm_delete")} ' + menuName + '?')) {
         $.ajax({
-            url: '{NV_BASE_ADMINURL}index.php?{NV_LANG_VARIABLE}={NV_LANG_DATA}&{NV_NAME_VARIABLE}={MODULE_NAME}&{NV_OP_VARIABLE}=menu-del',
+            url: '{$smarty.const.NV_BASE_ADMINURL}index.php?{$smarty.const.NV_LANG_VARIABLE}={$smarty.const.NV_LANG_DATA}&{$smarty.const.NV_NAME_VARIABLE}={$MODULE_NAME}&{$smarty.const.NV_OP_VARIABLE}=menu-del',
             type: 'POST',
-            data: { menu_id: menuId },
+            data: {
+                menu_id: menuId,
+                checkss: '{$NV_CHECK}'
+            },
             success: function(response) {
                 if (response.status == 'OK') {
                     alert(response.message);
@@ -119,4 +120,4 @@ function confirmDelete(menuId, menuName) {
     }
 }
 </script>
-<!-- END: main -->
+{* END: main *}
