@@ -49,12 +49,10 @@ modules/{module_name}/
 │   ├── del.php              # Delete action
 │   └── ...
 ├── language/                 # Language files
-│   ├── vi/
-│   │   ├── admin_{module}.php
-│   │   └── {module}.php
-│   └── en/
-│       ├── admin_{module}.php
-│       └── {module}.php
+│   ├── data_vi.php          # Admin language (Vietnamese)
+│   ├── data_en.php          # Admin language (English)
+│   ├── vi.php               # Frontend language (Vietnamese)
+│   └── en.php               # Frontend language (English)
 └── themes/                   # Optional: module-specific themes
 
 themes/admin_future/modules/{module_name}/
@@ -112,18 +110,18 @@ echo json_encode($data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_Q
 
 **✅ ALWAYS add CSRF token to forms:**
 ```php
-// In controller
-$xtpl->assign('NV_CHECK', md5($client_info['session_id'] . $global_config['sitekey']));
+// In controller (Smarty)
+$tpl->assign('NV_CHECK', md5($client_info['session_id'] . $global_config['sitekey']));
 
-// In template
-<input type="hidden" name="checkss" value="{NV_CHECK}" />
+// In template (Smarty syntax)
+<input type="hidden" name="checkss" value="{$NV_CHECK}" />
 
 // Validate on submit
 $checkss = $nv_Request->get_title('checkss', 'post', '');
 if ($checkss != md5($client_info['session_id'] . $global_config['sitekey'])) {
     nv_jsonOutput([
         'status' => 'error',
-        'message' => 'Invalid security token'
+        'message' => $nv_Lang->getModule('error_security')
     ]);
 }
 ```
@@ -140,18 +138,18 @@ $content = $nv_Request->get_textarea('content', '', 'post');
 
 // Additional validation
 if (empty($title)) {
-    $error[] = $lang_module['error_required_title'];
+    $error[] = $nv_Lang->getModule('error_required_title');
 }
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    $error[] = $lang_module['error_invalid_email'];
+    $error[] = $nv_Lang->getModule('error_invalid_email');
 }
 
 // Validate date
 $date = $nv_Request->get_title('date', 'post', '');
 $timestamp = strtotime($date);
 if ($timestamp === false || $timestamp < 0) {
-    $error[] = $lang_module['error_invalid_date'];
+    $error[] = $nv_Lang->getModule('error_invalid_date');
 }
 ```
 
@@ -198,7 +196,7 @@ KEY status_weight (status, weight)  -- For: WHERE status=1 ORDER BY weight
 
 ## Controller Pattern (Admin)
 
-### Standard CRUD Controller
+### Standard CRUD Controller (NukeViet 5.x with Smarty)
 
 ```php
 <?php
@@ -213,7 +211,7 @@ if (!defined('NV_IS_FILE_ADMIN')) {
     exit('Stop!!!');
 }
 
-$page_title = $lang_module['item_add'];
+$page_title = $nv_Lang->getModule('item_add');
 $item_id = $nv_Request->get_int('item_id', 'get', 0);
 
 // Load existing item if editing
@@ -226,7 +224,7 @@ if ($item_id > 0) {
 
     if ($stmt->rowCount()) {
         $item = $stmt->fetch();
-        $page_title = $lang_module['item_edit'];
+        $page_title = $nv_Lang->getModule('item_edit');
     } else {
         nv_redirect_location(NV_BASE_ADMINURL . 'index.php?' . NV_LANG_VARIABLE . '=' . NV_LANG_DATA . '&' . NV_NAME_VARIABLE . '=' . $module_name . '&' . NV_OP_VARIABLE . '=main');
     }
@@ -239,7 +237,7 @@ if ($nv_Request->isset_request('submit', 'post')) {
     // Verify CSRF token
     $checkss = $nv_Request->get_title('checkss', 'post', '');
     if ($checkss != md5($client_info['session_id'] . $global_config['sitekey'])) {
-        $error[] = $lang_module['error_security'];
+        $error[] = $nv_Lang->getModule('error_security');
     }
 
     // Get and validate input
@@ -251,7 +249,7 @@ if ($nv_Request->isset_request('submit', 'post')) {
 
     // Validation
     if (empty($title)) {
-        $error[] = $lang_module['error_required_title'];
+        $error[] = $nv_Lang->getModule('error_required_title');
     }
 
     // Generate alias if empty
@@ -269,7 +267,7 @@ if ($nv_Request->isset_request('submit', 'post')) {
         $stmt->execute();
 
         if ($stmt->fetchColumn()) {
-            $error[] = $lang_module['error_alias_exists'];
+            $error[] = $nv_Lang->getModule('error_alias_exists');
         }
     }
 
@@ -329,7 +327,7 @@ if ($nv_Request->isset_request('submit', 'post')) {
         } catch (PDOException $e) {
             $db->query('ROLLBACK');
             nv_insert_logs(NV_LANG_DATA, $module_name, 'ERROR', $e->getMessage(), $admin_info['userid']);
-            $error[] = $lang_module['error_save'];
+            $error[] = $nv_Lang->getModule('error_save');
         }
     }
 } else {
@@ -350,130 +348,211 @@ if ($nv_Request->isset_request('submit', 'post')) {
     }
 }
 
-// Prepare template
-$xtpl = new XTemplate('content.tpl', NV_ROOTDIR . '/themes/' . $global_config['module_theme'] . '/modules/' . $module_file);
-$xtpl->assign('LANG', $lang_module);
-$xtpl->assign('GLANG', $lang_global);
-$xtpl->assign('MODULE_NAME', $module_name);
-$xtpl->assign('OP', $op);
-$xtpl->assign('ITEM_ID', $item_id);
-$xtpl->assign('TITLE', nv_htmlspecialchars($title));
-$xtpl->assign('ALIAS', nv_htmlspecialchars($alias));
-$xtpl->assign('CONTENT', $content);
-$xtpl->assign('STATUS', $status);
-$xtpl->assign('WEIGHT', $weight);
-$xtpl->assign('NV_CHECK', md5($client_info['session_id'] . $global_config['sitekey']));
+// Prepare Smarty template
+$tpl = new \NukeViet\Template\NVSmarty();
+$tpl->setTemplateDir(get_module_tpl_dir('content.tpl'));
+$tpl->assign('LANG', $nv_Lang);
+$tpl->assign('MODULE_NAME', $module_name);
+$tpl->assign('OP', $op);
+$tpl->assign('ITEM_ID', $item_id);
+$tpl->assign('TITLE', $title);
+$tpl->assign('ALIAS', $alias);
+$tpl->assign('CONTENT', $content);
+$tpl->assign('STATUS', $status);
+$tpl->assign('WEIGHT', $weight);
+$tpl->assign('ERROR', $error);
+$tpl->assign('NV_CHECK', md5($client_info['session_id'] . $global_config['sitekey']));
 
-// Show errors
-if (!empty($error)) {
-    foreach ($error as $e) {
-        $xtpl->assign('ERROR', $e);
-        $xtpl->parse('main.error.loop');
-    }
-    $xtpl->parse('main.error');
-}
-
-$xtpl->parse('main');
-$contents = $xtpl->text('main');
+$contents = $tpl->fetch('content.tpl');
 
 include NV_ROOTDIR . '/includes/header.php';
 echo nv_admin_theme($contents);
 include NV_ROOTDIR . '/includes/footer.php';
 ```
 
-## Template Best Practices (Bootstrap 5)
+## NukeViet 4.x vs 5.x Comparison
 
-### Standard List Template
+### Template Engine Migration
 
+| Feature | NukeViet 4.x (XTemplate) | NukeViet 5.x (Smarty) |
+|---------|-------------------------|----------------------|
+| **Template Engine** | XTemplate | Smarty 3.x |
+| **Language Access** | `$lang_module` array | `$nv_Lang` object |
+| **Initialization** | `new XTemplate('file.tpl', $path)` | `new \NukeViet\Template\NVSmarty()` |
+| **Template Directory** | Full path concatenation | `get_module_tpl_dir('file.tpl')` |
+| **Assign Language** | `$xtpl->assign('LANG', $lang_module)` | `$tpl->assign('LANG', $nv_Lang)` |
+| **Render Template** | `$xtpl->parse('main')` + `$xtpl->text('main')` | `$tpl->fetch('file.tpl')` |
+| **Comments** | `<!-- comment -->` | `{* comment *}` |
+| **Language Keys** | `{LANG.key}` | `{$LANG->getModule('key')}` |
+| **Variables** | `{VAR}` | `{$var}` |
+| **Constants** | `{NV_BASE_ADMINURL}` | `{$smarty.const.NV_BASE_ADMINURL}` |
+| **Loops** | `<!-- BEGIN: loop -->...<!-- END: loop -->` | `{foreach from=$items item=item}...{/foreach}` |
+| **Conditionals** | `<!-- BEGIN: condition -->...<!-- END: condition -->` | `{if condition}...{/if}` |
+| **Escaping** | Manual `nv_htmlspecialchars()` | Smarty modifiers `{$var\|escape}` |
+
+### Language File Structure
+
+| Aspect | NukeViet 4.x | NukeViet 5.x |
+|--------|--------------|--------------|
+| **Admin Language Path** | `language/vi/admin_{module}.php` | `language/data_vi.php` |
+| **Frontend Language Path** | `language/vi/{module}.php` | `language/vi.php` |
+| **Guard Check** | `if (!defined('NV_ADMIN') or !defined('NV_MAINFILE'))` | `if (!defined('NV_ADMIN'))` |
+| **Language Variable** | `$lang_module` array | Returns via `$nv_Lang->getModule()` |
+| **Usage in PHP** | `$lang_module['key']` | `$nv_Lang->getModule('key')` |
+| **Usage in Templates** | `{LANG.key}` | `{$LANG->getModule('key')}` |
+
+### Migration Examples
+
+**XTemplate → Smarty: Comments**
 ```html
-<!-- BEGIN: main -->
+<!-- XTemplate (NV4) -->
+<!-- This is a comment -->
+
+<!-- Smarty (NV5) -->
+{* This is a comment *}
+```
+
+**XTemplate → Smarty: Language Keys**
+```html
+<!-- XTemplate (NV4) -->
+<h1>{LANG.welcome}</h1>
+
+<!-- Smarty (NV5) -->
+<h1>{$LANG->getModule('welcome')}</h1>
+```
+
+**XTemplate → Smarty: Variables**
+```html
+<!-- XTemplate (NV4) -->
+<p>{TITLE}</p>
+<p>{USER.name}</p>
+
+<!-- Smarty (NV5) -->
+<p>{$TITLE}</p>
+<p>{$user.name}</p>
+```
+
+**XTemplate → Smarty: Loops**
+```html
+<!-- XTemplate (NV4) -->
+<!-- BEGIN: items -->
+<!-- BEGIN: loop -->
+<div>{ITEM.name}</div>
+<!-- END: loop -->
+<!-- END: items -->
+
+<!-- Smarty (NV5) -->
+{if not empty($ITEMS)}
+{foreach from=$ITEMS item=item}
+<div>{$item.name}</div>
+{/foreach}
+{/if}
+```
+
+**XTemplate → Smarty: Conditionals**
+```html
+<!-- XTemplate (NV4) -->
+<!-- BEGIN: has_items -->
+<p>Has items</p>
+<!-- END: has_items -->
+
+<!-- Smarty (NV5) -->
+{if not empty($ITEMS)}
+<p>Has items</p>
+{/if}
+```
+
+## Template Best Practices (Bootstrap 5 with Smarty)
+
+### Standard List Template (Smarty Syntax)
+
+```smarty
+{* BEGIN: main *}
 <div class="card">
     <div class="card-header text-bg-primary">
-        <h5 class="mb-0"><i class="bi bi-list"></i> {LANG.item_list}</h5>
+        <h5 class="mb-0"><i class="bi bi-list"></i> {$LANG->getModule('item_list')}</h5>
     </div>
     <div class="card-body">
-        <!-- Filters -->
-        <form action="{NV_BASE_ADMINURL}index.php" method="get" class="mb-4">
-            <input type="hidden" name="{NV_LANG_VARIABLE}" value="{NV_LANG_DATA}">
-            <input type="hidden" name="{NV_NAME_VARIABLE}" value="{MODULE_NAME}">
-            <input type="hidden" name="{NV_OP_VARIABLE}" value="{OP}">
+        {* Filters *}
+        <form action="{$smarty.const.NV_BASE_ADMINURL}index.php" method="get" class="mb-4">
+            <input type="hidden" name="{$smarty.const.NV_LANG_VARIABLE}" value="{$smarty.const.NV_LANG_DATA}">
+            <input type="hidden" name="{$smarty.const.NV_NAME_VARIABLE}" value="{$MODULE_NAME}">
+            <input type="hidden" name="{$smarty.const.NV_OP_VARIABLE}" value="{$OP}">
 
             <div class="row g-3">
                 <div class="col-md-6">
-                    <input type="text" name="search" value="{SEARCH}" class="form-control" placeholder="{LANG.search}...">
+                    <input type="text" name="search" value="{$SEARCH}" class="form-control" placeholder="{$LANG->getModule('search')}...">
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-search"></i> {LANG.search}
+                        <i class="bi bi-search"></i> {$LANG->getModule('search')}
                     </button>
                 </div>
             </div>
         </form>
 
-        <!-- Add button -->
+        {* Add button *}
         <div class="mb-3">
-            <a href="{NV_BASE_ADMINURL}index.php?{NV_LANG_VARIABLE}={NV_LANG_DATA}&amp;{NV_NAME_VARIABLE}={MODULE_NAME}&amp;{NV_OP_VARIABLE}=content" class="btn btn-success">
-                <i class="bi bi-plus-circle"></i> {LANG.item_add}
+            <a href="{$smarty.const.NV_BASE_ADMINURL}index.php?{$smarty.const.NV_LANG_VARIABLE}={$smarty.const.NV_LANG_DATA}&amp;{$smarty.const.NV_NAME_VARIABLE}={$MODULE_NAME}&amp;{$smarty.const.NV_OP_VARIABLE}=content" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> {$LANG->getModule('item_add')}
             </a>
         </div>
 
-        <!-- BEGIN: items -->
+        {if not empty($ITEMS)}
         <div class="table-responsive">
             <table class="table table-striped table-hover">
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>{LANG.title}</th>
-                        <th>{LANG.status}</th>
-                        <th class="text-center">{LANG.actions}</th>
+                        <th>{$LANG->getModule('title')}</th>
+                        <th>{$LANG->getModule('status')}</th>
+                        <th class="text-center">{$LANG->getModule('actions')}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- BEGIN: loop -->
+                    {foreach from=$ITEMS item=item}
                     <tr>
-                        <td>{ITEM.id}</td>
-                        <td><strong>{ITEM.title}</strong></td>
-                        <td><span class="badge bg-{ITEM.status_class}">{ITEM.status_text}</span></td>
+                        <td>{$item.id}</td>
+                        <td><strong>{$item.title}</strong></td>
+                        <td><span class="badge bg-{$item.status_class}">{$item.status_text}</span></td>
                         <td class="text-center">
                             <div class="btn-group btn-group-sm">
-                                <a href="{ITEM.edit_url}" class="btn btn-primary" title="{LANG.edit}">
+                                <a href="{$smarty.const.NV_BASE_ADMINURL}index.php?{$smarty.const.NV_LANG_VARIABLE}={$smarty.const.NV_LANG_DATA}&amp;{$smarty.const.NV_NAME_VARIABLE}={$MODULE_NAME}&amp;{$smarty.const.NV_OP_VARIABLE}=content&amp;item_id={$item.id}" class="btn btn-primary" title="{$LANG->getModule('edit')}">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <button type="button" class="btn btn-danger" onclick="confirmDelete({ITEM.id}, '{ITEM.title|nv_htmlspecialchars}');" title="{LANG.delete}">
+                                <button type="button" class="btn btn-danger" onclick="confirmDelete({$item.id}, '{$item.title|escape:'javascript'}');" title="{$LANG->getModule('delete')}">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
                         </td>
                     </tr>
-                    <!-- END: loop -->
+                    {/foreach}
                 </tbody>
             </table>
         </div>
-        <!-- END: items -->
-
-        <!-- BEGIN: no_data -->
+        {else}
         <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i> {LANG.no_data}
+            <i class="bi bi-info-circle"></i> {$LANG->getModule('no_data')}
         </div>
-        <!-- END: no_data -->
+        {/if}
 
-        <!-- BEGIN: generate_page -->
+        {if not empty($GENERATE_PAGE)}
         <div class="mt-3">
-            {GENERATE_PAGE}
+            {$GENERATE_PAGE}
         </div>
-        <!-- END: generate_page -->
+        {/if}
     </div>
 </div>
 
 <script>
 function confirmDelete(id, title) {
-    if (confirm('{LANG.confirm_delete} "' + title + '"?')) {
+    if (confirm('{$LANG->getModule("confirm_delete")} "' + title + '"?')) {
         $.ajax({
-            url: '{NV_BASE_ADMINURL}index.php?{NV_LANG_VARIABLE}={NV_LANG_DATA}&{NV_NAME_VARIABLE}={MODULE_NAME}&{NV_OP_VARIABLE}=del',
+            url: '{$smarty.const.NV_BASE_ADMINURL}index.php?{$smarty.const.NV_LANG_VARIABLE}={$smarty.const.NV_LANG_DATA}&{$smarty.const.NV_NAME_VARIABLE}={$MODULE_NAME}&{$smarty.const.NV_OP_VARIABLE}=del',
             type: 'POST',
             data: {
                 id: id,
-                checkss: '{NV_CHECK}'
+                checkss: '{$NV_CHECK}'
             },
             success: function(response) {
                 if (response.status == 'OK') {
@@ -487,76 +566,74 @@ function confirmDelete(id, title) {
     }
 }
 </script>
-<!-- END: main -->
+{* END: main *}
 ```
 
-### Standard Form Template
+### Standard Form Template (Smarty Syntax)
 
-```html
-<!-- BEGIN: main -->
+```smarty
+{* BEGIN: main *}
 <div class="card">
     <div class="card-header text-bg-primary">
-        <h5 class="mb-0"><i class="bi bi-pencil"></i> {LANG.item_add}</h5>
+        <h5 class="mb-0"><i class="bi bi-pencil"></i> {$LANG->getModule('item_add')}</h5>
     </div>
     <div class="card-body">
-        <!-- BEGIN: error -->
+        {if not empty($ERROR)}
         <div class="alert alert-danger">
-            <!-- BEGIN: loop -->
-            <div>{ERROR}</div>
-            <!-- END: loop -->
+            {$ERROR|@join:"<br />"}
         </div>
-        <!-- END: error -->
+        {/if}
 
-        <form action="{NV_BASE_ADMINURL}index.php?{NV_LANG_VARIABLE}={NV_LANG_DATA}&amp;{NV_NAME_VARIABLE}={MODULE_NAME}&amp;{NV_OP_VARIABLE}={OP}&amp;item_id={ITEM_ID}" method="post">
-            <input type="hidden" name="checkss" value="{NV_CHECK}" />
+        <form action="{$smarty.const.NV_BASE_ADMINURL}index.php?{$smarty.const.NV_LANG_VARIABLE}={$smarty.const.NV_LANG_DATA}&amp;{$smarty.const.NV_NAME_VARIABLE}={$MODULE_NAME}&amp;{$smarty.const.NV_OP_VARIABLE}={$OP}&amp;item_id={$ITEM_ID}" method="post">
+            <input type="hidden" name="checkss" value="{$NV_CHECK}" />
 
             <div class="mb-3">
-                <label class="form-label">{LANG.title} <span class="text-danger">*</span></label>
-                <input type="text" name="title" value="{TITLE}" class="form-control" required>
+                <label class="form-label">{$LANG->getModule('title')} <span class="text-danger">*</span></label>
+                <input type="text" name="title" value="{$TITLE}" class="form-control" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">{LANG.alias}</label>
-                <input type="text" name="alias" value="{ALIAS}" class="form-control">
-                <small class="form-text text-muted">{LANG.alias_hint}</small>
+                <label class="form-label">{$LANG->getModule('alias')}</label>
+                <input type="text" name="alias" value="{$ALIAS}" class="form-control">
+                <small class="form-text text-muted">{$LANG->getModule('alias_hint')}</small>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">{LANG.content}</label>
-                <textarea name="content" class="form-control" rows="10">{CONTENT}</textarea>
+                <label class="form-label">{$LANG->getModule('content')}</label>
+                <textarea name="content" class="form-control" rows="10">{$CONTENT}</textarea>
             </div>
 
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label">{LANG.status}</label>
+                        <label class="form-label">{$LANG->getModule('status')}</label>
                         <select name="status" class="form-select">
-                            <option value="1" {STATUS_1_SELECTED}>{LANG.status_active}</option>
-                            <option value="0" {STATUS_0_SELECTED}>{LANG.status_inactive}</option>
+                            <option value="1" {if $STATUS == 1}selected{/if}>{$LANG->getModule('status_active')}</option>
+                            <option value="0" {if $STATUS == 0}selected{/if}>{$LANG->getModule('status_inactive')}</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label">{LANG.weight}</label>
-                        <input type="number" name="weight" value="{WEIGHT}" class="form-control" min="0">
+                        <label class="form-label">{$LANG->getModule('weight')}</label>
+                        <input type="number" name="weight" value="{$WEIGHT}" class="form-control" min="0">
                     </div>
                 </div>
             </div>
 
             <div class="text-end">
-                <a href="{NV_BASE_ADMINURL}index.php?{NV_LANG_VARIABLE}={NV_LANG_DATA}&amp;{NV_NAME_VARIABLE}={MODULE_NAME}&amp;{NV_OP_VARIABLE}=main" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> {LANG.back}
+                <a href="{$smarty.const.NV_BASE_ADMINURL}index.php?{$smarty.const.NV_LANG_VARIABLE}={$smarty.const.NV_LANG_DATA}&amp;{$smarty.const.NV_NAME_VARIABLE}={$MODULE_NAME}&amp;{$smarty.const.NV_OP_VARIABLE}=main" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> {$LANG->getModule('back')}
                 </a>
                 <button type="submit" name="submit" class="btn btn-primary">
-                    <i class="bi bi-save"></i> {LANG.save}
+                    <i class="bi bi-save"></i> {$LANG->getModule('save')}
                 </button>
             </div>
         </form>
     </div>
 </div>
-<!-- END: main -->
+{* END: main *}
 ```
 
 ## Performance Optimization
