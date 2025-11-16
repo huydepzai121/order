@@ -9,7 +9,7 @@
  * @see https://github.com/nukeviet The NukeViet CMS GitHub project
  */
 
-if (!defined('NV_ADMIN')) {
+if (!defined('NV_ADMIN') or !defined('NV_MAINFILE')) {
     exit('Stop!!!');
 }
 
@@ -82,6 +82,7 @@ $lang_module['active'] = 'Hiển thị';
 $lang_module['inactive'] = 'Ẩn';
 $lang_module['menu_code_exists'] = 'Mã món đã tồn tại';
 
+
 // Staff management
 $lang_module['staff_list'] = 'Danh sách nhân viên';
 $lang_module['staff_name'] = 'Tên nhân viên';
@@ -95,6 +96,7 @@ $lang_module['staff_select'] = 'Chọn nhân viên';
 $lang_module['staff_work_add'] = 'Thêm công nhân viên';
 $lang_module['staff_work_edit'] = 'Sửa công nhân viên';
 $lang_module['staff_work_list'] = 'Danh sách công nhân viên';
+
 $lang_module['work_date'] = 'Ngày làm việc';
 $lang_module['shift'] = 'Ca làm';
 $lang_module['start_time'] = 'Giờ vào';
@@ -112,6 +114,7 @@ $lang_module['report_order'] = 'Báo cáo đơn hàng';
 $lang_module['report_menu'] = 'Báo cáo thực đơn';
 $lang_module['report_staff'] = 'Báo cáo nhân viên';
 $lang_module['report_type'] = 'Loại báo cáo';
+
 $lang_module['from_date'] = 'Từ ngày';
 $lang_module['to_date'] = 'Đến ngày';
 $lang_module['view_report'] = 'Xem báo cáo';
@@ -120,6 +123,7 @@ $lang_module['revenue_summary'] = 'Tổng quan doanh thu';
 $lang_module['revenue_by_date'] = 'Doanh thu theo ngày';
 $lang_module['best_selling_items'] = 'Món bán chạy';
 $lang_module['staff_performance'] = 'Hiệu suất nhân viên';
+
 
 // Common
 $lang_module['add'] = 'Thêm mới';
@@ -143,6 +147,10 @@ $lang_module['error_security'] = 'Lỗi bảo mật. Vui lòng thử lại';
 $lang_module['success_save'] = 'Lưu dữ liệu thành công';
 $lang_module['success_delete'] = 'Xóa dữ liệu thành công';
 $lang_module['confirm_delete'] = 'Bạn có chắc chắn muốn xóa';
+=======
+$lang_module['success_save'] = 'Lưu dữ liệu thành công';
+$lang_module['success_delete'] = 'Xóa dữ liệu thành công';
+$lang_module['confirm_delete'] = 'Bạn có chắc chắn muốn xóa?';
 $lang_module['no_data'] = 'Không có dữ liệu';
 
 // Permissions
